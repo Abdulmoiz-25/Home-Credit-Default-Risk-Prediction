@@ -113,7 +113,7 @@ if mode == "Single Applicant":
 
     preds = {}
     if "Logistic Regression" in selected_models:
-        scaled = scaler.transform(new_app)
+        scaled = scaler.transform(new_app.values)  # Use .values to pass numpy array instead of DataFrame
         preds["Logistic Regression"] = float(log_model.predict_proba(scaled)[:, 1][0])
 
     if "CatBoost" in selected_models:
