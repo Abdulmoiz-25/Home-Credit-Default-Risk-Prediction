@@ -65,17 +65,25 @@ def load_training_dataset():
 # Load models
 @st.cache_resource
 def load_models():
-    try:
-        log_model = joblib.load("log_model.pkl")
-        scaler = joblib.load("scaler.pkl")
-        cat_model = CatBoostClassifier()
-        cat_model.load_model("cat_model.cbm")
-        return log_model, scaler, cat_model
-    except Exception as e:
-        st.error(f"Error loading models: {e}")
-        return None, None, None
+    with st.sidebar.expander("🤖 Model Status", expanded=True):
+        try:
+            log_model = joblib.load("log_model.pkl")
+            st.markdown("✅ Logistic Regression model loaded")
+
+            scaler = joblib.load("scaler.pkl")
+            st.markdown("✅ Scaler loaded")
+
+            cat_model = CatBoostClassifier()
+            cat_model.load_model("cat_model.cbm")
+            st.markdown("✅ CatBoost model loaded")
+
+            return log_model, scaler, cat_model
+        except Exception as e:
+            st.markdown(f"❌ Error loading models: `{e}`")
+            return None, None, None
 
 log_model, scaler, cat_model = load_models()
+
 
 @st.cache_data
 def create_sample_data():
@@ -484,4 +492,5 @@ if st.button("🔮 Predict Default Risk", type="primary"):
 
 st.markdown("---")
 st.markdown("**Note:** This app uses models trained on Home Credit dataset with business cost optimization.")
+
 
