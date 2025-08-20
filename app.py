@@ -132,7 +132,9 @@ if mode == "Single Applicant":
     predict_button = st.button("🔮 Predict Default Risk", type="primary")
     
     if predict_button:
-        mapped_data = {}
+        complete_data = {'SK_ID_CURR': 1}  # Dummy ID for single prediction
+        
+        # Map user inputs to training features with proper conversions
         for user_key, value in user_inputs.items():
             if user_key in FEATURE_MAPPING:
                 training_feature = FEATURE_MAPPING[user_key]
@@ -140,26 +142,27 @@ if mode == "Single Applicant":
                 # Handle special conversions
                 if user_key == 'age':
                     # Convert age to DAYS_BIRTH (negative days from birth)
-                    mapped_data[training_feature] = -value * 365
+                    complete_data[training_feature] = -value * 365
                 elif user_key == 'employment_years':
                     # Convert years to DAYS_EMPLOYED (negative days)
-                    mapped_data[training_feature] = -value * 365
+                    complete_data[training_feature] = -value * 365
                 else:
-                    mapped_data[training_feature] = value
-
-        ordered_data = {'SK_ID_CURR': 1}  # Dummy ID for single prediction
-        ordered_data.update(mapped_data)
+                    complete_data[training_feature] = value
         
-        new_app = pd.DataFrame([ordered_data]).reindex(columns=X.columns, fill_value=0)
+        new_app = pd.DataFrame([complete_data])
         
-        if len(new_app.columns) != len(X.columns):
-            st.error(f"Feature mismatch: Expected {len(X.columns)} features, got {len(new_app.columns)}")
-            st.stop()
+        # Reindex to match ALL training columns, filling missing features with 0
+        new_app = new_app.reindex(columns=X.columns, fill_value=0)
+        
+        # Ensure SK_ID_CURR is first column for CatBoost
+        if 'SK_ID_CURR' in new_app.columns:
+            cols = ['SK_ID_CURR'] + [col for col in new_app.columns if col != 'SK_ID_CURR']
+            new_app = new_app[cols]
 
         preds = {}
         if "Logistic Regression" in selected_models:
             try:
-                scaled = scaler.transform(new_app)
+                scaled = scaler.transform(new_app.values)
                 preds["Logistic Regression"] = float(log_model.predict_proba(scaled)[:, 1][0])
             except Exception as e:
                 st.error(f"Error with Logistic Regression prediction: {str(e)}")
