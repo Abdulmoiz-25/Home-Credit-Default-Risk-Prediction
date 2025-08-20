@@ -458,29 +458,28 @@ if st.button("🔮 Predict Default Risk", type="primary"):
 
     new_df = pd.DataFrame([new_applicant])
 
-    # -------------------------
-    # 2️⃣ Preprocess input
-    # -------------------------
-    try:
-        training_medians = training_features.median()
-    except:
-        training_medians = new_df.select_dtypes(include=['number']).median()
+   # -------------------------
+# 2️⃣ Preprocess input
+# -------------------------
+try:
+    training_medians = training_features.median()
+except:
+    training_medians = new_df.select_dtypes(include=['number']).median()
 
-    for col in new_df.select_dtypes(include=['number']).columns:
-        new_df[col] = new_df[col].fillna(training_medians.get(col, 0))
+for col in new_df.select_dtypes(include=['number']).columns:
+    new_df[col] = new_df[col].fillna(training_medians.get(col, 0))
 
-    new_df_encoded = pd.get_dummies(new_df, drop_first=True)
+new_df_encoded = pd.get_dummies(new_df, drop_first=True)
 
-    if 'TARGET' in new_df_encoded.columns:
-        X_new = new_df_encoded.drop('TARGET', axis=1)
-    else:
-        X_new = new_df_encoded
+if 'TARGET' in new_df_encoded.columns:
+    X_new = new_df_encoded.drop('TARGET', axis=1)
+else:
+    X_new = new_df_encoded
 
-    X_new_aligned = X_new.reindex(columns=training_features.columns, fill_value=0)
-    X_new_aligned = X_new_aligned.fillna(0)
+X_new_aligned = X_new.reindex(columns=training_features.columns, fill_value=0)
+X_new_aligned = X_new_aligned.fillna(0)
 
-
- # -------------------------
+# -------------------------
 # Initialize results
 # -------------------------
 results = {}
@@ -502,7 +501,6 @@ if model_choice in ["CatBoost", "Both"]:
         results["CatBoost"] = cb_prob
     except Exception as e:
         st.error(f"CatBoost error: {e}")
-
 
 # -------------------------
 # 4️⃣ Display results (cards + circular gauge)
@@ -611,13 +609,6 @@ if results:
         )
 
 st.markdown("---")
-
-
-
-
-
-
-
 
 
 
