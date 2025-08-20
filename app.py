@@ -92,88 +92,89 @@ def cm_counts_to_df(cm):
         "TN":[tn], "FP":[fp], "FN":[fn], "TP":[tp]
     })
 
-# Feature mapping from user-friendly names to actual training feature names
-FEATURE_MAPPING = {
-    'income': 'AMT_INCOME_TOTAL',
-    'age': 'DAYS_BIRTH',  # Note: this will need to be converted (age * -365)
-    'loan_amount': 'AMT_CREDIT',
-    'credit_score': 'AMT_ANNUITY',  # Using as proxy - adjust as needed
-    'employment_years': 'DAYS_EMPLOYED',  # Will need conversion
-    'family_size': 'CNT_FAM_MEMBERS',
-    'children_count': 'CNT_CHILDREN',
-    'goods_price': 'AMT_GOODS_PRICE',
-    'annuity': 'AMT_ANNUITY',
-    'credit_bureau_requests': 'AMT_REQ_CREDIT_BUREAU_DAY'
-}
-
-# Reverse mapping for display
-DISPLAY_MAPPING = {v: k for k, v in FEATURE_MAPPING.items()}
-
 # ---------------------------------------------------
 # Single Applicant Prediction
 # ---------------------------------------------------
 if mode == "Single Applicant":
     st.subheader("Single Applicant Prediction")
 
-    applicant_data = {}
+    st.write("Enter applicant details:")
     
-    # Define user-friendly inputs
-    user_inputs = {
-        'income': st.number_input("Annual Income", value=50000.0, min_value=0.0),
-        'age': st.number_input("Age (years)", value=35, min_value=18, max_value=100),
-        'loan_amount': st.number_input("Loan Amount", value=100000.0, min_value=0.0),
-        'credit_score': st.number_input("Credit Score (as annuity proxy)", value=15000.0, min_value=0.0),
-        'employment_years': st.number_input("Employment Years", value=5, min_value=0, max_value=50),
-        'family_size': st.number_input("Family Size", value=2, min_value=1, max_value=10),
-        'children_count': st.number_input("Number of Children", value=0, min_value=0, max_value=10),
-        'goods_price': st.number_input("Goods Price", value=90000.0, min_value=0.0)
-    }
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        amt_income_total = st.number_input("Annual Income", value=150000.0, min_value=0.0)
+        amt_credit = st.number_input("Credit Amount", value=500000.0, min_value=0.0)
+        amt_annuity = st.number_input("Loan Annuity", value=25000.0, min_value=0.0)
+        amt_goods_price = st.number_input("Goods Price", value=450000.0, min_value=0.0)
+        days_birth = st.number_input("Age (years)", value=35, min_value=18, max_value=100)
+    
+    with col2:
+        days_employed = st.number_input("Years Employed", value=5, min_value=0, max_value=50)
+        cnt_children = st.number_input("Number of Children", value=0, min_value=0, max_value=10)
+        cnt_fam_members = st.number_input("Family Members", value=2, min_value=1, max_value=10)
+        region_rating_client = st.selectbox("Region Rating", [1, 2, 3], index=1)
+        name_education_type = st.selectbox("Education", 
+            ["Secondary / secondary special", "Higher education", "Incomplete higher", "Lower secondary", "Academic degree"])
     
     predict_button = st.button("🔮 Predict Default Risk", type="primary")
     
     if predict_button:
-        complete_data = {'SK_ID_CURR': 1}  # Dummy ID for single prediction
+        applicant_data = {
+            'SK_ID_CURR': 100001,  # Dummy ID
+            'AMT_INCOME_TOTAL': amt_income_total,
+            'AMT_CREDIT': amt_credit,
+            'AMT_ANNUITY': amt_annuity,
+            'AMT_GOODS_PRICE': amt_goods_price,
+            'DAYS_BIRTH': -days_birth * 365,  # Convert to negative days
+            'DAYS_EMPLOYED': -days_employed * 365,  # Convert to negative days
+            'CNT_CHILDREN': cnt_children,
+            'CNT_FAM_MEMBERS': cnt_fam_members,
+            'REGION_RATING_CLIENT': region_rating_client,
+            'NAME_EDUCATION_TYPE': name_education_type,
+            # Add other common features with default values
+            'DAYS_REGISTRATION': -4000,
+            'DAYS_ID_PUBLISH': -3000,
+            'FLAG_MOBIL': 1,
+            'FLAG_EMP_PHONE': 1,
+            'FLAG_WORK_PHONE': 0,
+            'FLAG_CONT_MOBILE': 1,
+            'FLAG_PHONE': 0,
+            'FLAG_EMAIL': 0,
+            'REGION_RATING_CLIENT_W_CITY': region_rating_client,
+            'HOUR_APPR_PROCESS_START': 12,
+            'REG_REGION_NOT_LIVE_REGION': 0,
+            'REG_REGION_NOT_WORK_REGION': 0,
+            'LIVE_REGION_NOT_WORK_REGION': 0,
+            'REG_CITY_NOT_LIVE_CITY': 0,
+            'REG_CITY_NOT_WORK_CITY': 0,
+            'LIVE_CITY_NOT_WORK_CITY': 0
+        }
         
-        # Map user inputs to training features with proper conversions
-        for user_key, value in user_inputs.items():
-            if user_key in FEATURE_MAPPING:
-                training_feature = FEATURE_MAPPING[user_key]
-                
-                # Handle special conversions
-                if user_key == 'age':
-                    # Convert age to DAYS_BIRTH (negative days from birth)
-                    complete_data[training_feature] = -value * 365
-                elif user_key == 'employment_years':
-                    # Convert years to DAYS_EMPLOYED (negative days)
-                    complete_data[training_feature] = -value * 365
-                else:
-                    complete_data[training_feature] = value
+        # Create DataFrame and apply one-hot encoding like in training
+        new_app_df = pd.DataFrame([applicant_data])
         
-        new_app = pd.DataFrame([complete_data])
+        # Apply one-hot encoding for categorical variables (matching training process)
+        new_app_encoded = pd.get_dummies(new_app_df, drop_first=True)
         
-        # Reindex to match ALL training columns, filling missing features with 0
-        new_app = new_app.reindex(columns=X.columns, fill_value=0)
-        
-        # Ensure SK_ID_CURR is first column for CatBoost
-        if 'SK_ID_CURR' in new_app.columns:
-            cols = ['SK_ID_CURR'] + [col for col in new_app.columns if col != 'SK_ID_CURR']
-            new_app = new_app[cols]
+        # Align with training features - reindex to match X.columns exactly
+        new_app_aligned = new_app_encoded.reindex(columns=X.columns, fill_value=0)
 
         preds = {}
         if "Logistic Regression" in selected_models:
             try:
-                scaled = scaler.transform(new_app.values)
+                scaled = scaler.transform(new_app_aligned)
                 preds["Logistic Regression"] = float(log_model.predict_proba(scaled)[:, 1][0])
             except Exception as e:
                 st.error(f"Error with Logistic Regression prediction: {str(e)}")
-                st.info("This usually means the scaler was trained on different features. Try using only the CatBoost model.")
+                st.info("Feature alignment issue. Check that the scaler was trained on the same features.")
 
         if "CatBoost" in selected_models:
             try:
-                preds["CatBoost"] = float(cat_model.predict_proba(new_app)[:, 1][0])
+                preds["CatBoost"] = float(cat_model.predict_proba(new_app_aligned)[:, 1][0])
             except Exception as e:
                 st.error(f"Error with CatBoost prediction: {str(e)}")
-                st.info("CatBoost model may have been trained on different features.")
+                st.info("Feature alignment issue. Check that CatBoost was trained on the same features.")
 
         if preds:
             st.write("### Prediction Results")
