@@ -469,33 +469,29 @@ if st.button("🔮 Predict Default Risk", type="primary"):
         new_df[col] = new_df[col].fillna(training_medians.get(col, 0))
 
     new_df_encoded = pd.get_dummies(new_df, drop_first=True)
-
-    if 'TARGET' in new_df_encoded.columns:
-        X_new = new_df_encoded.drop('TARGET', axis=1)
-    else:
-        X_new = new_df_encoded
-
+    X_new = new_df_encoded.drop('TARGET', axis=1, errors='ignore')
     X_new_aligned = X_new.reindex(columns=training_features.columns, fill_value=0)
     X_new_aligned = X_new_aligned.fillna(0)
 
     # -------------------------
-# 3️⃣ Make predictions
-# -------------------------
-results = {}
-if model_choice in ["Logistic Regression", "Both"]:
-    try:
-        X_scaled = scaler.transform(X_new_aligned)
-        lr_prob = log_model.predict_proba(X_scaled)[0, 1]
-        results["Logistic Regression"] = lr_prob
-    except Exception as e:
-        st.error(f"Logistic Regression error: {e}")
+    # 3️⃣ Make predictions
+    # -------------------------
+    results = {}
 
-if model_choice in ["CatBoost", "Both"]:
-    try:
-        cb_prob = cat_model.predict_proba(X_new_aligned)[0, 1]
-        results["CatBoost"] = cb_prob
-    except Exception as e:
-        st.error(f"CatBoost error: {e}")
+    if model_choice in ["Logistic Regression", "Both"]:
+        try:
+            X_scaled = scaler.transform(X_new_aligned)
+            lr_prob = log_model.predict_proba(X_scaled)[0, 1]
+            results["Logistic Regression"] = lr_prob
+        except Exception as e:
+            st.error(f"Logistic Regression error: {e}")
+
+    if model_choice in ["CatBoost", "Both"]:
+        try:
+            cb_prob = cat_model.predict_proba(X_new_aligned)[0, 1]
+            results["CatBoost"] = cb_prob
+        except Exception as e:
+            st.error(f"CatBoost error: {e}")
 
 # -------------------------
 # 4️⃣ Display results (cards + animated circular gauge)
@@ -604,3 +600,4 @@ else:
     st.error("❌ No predictions could be generated. Please check the model files or feature alignment.")
 
 st.markdown("---")
+
