@@ -4,8 +4,63 @@ import numpy as np
 import joblib
 from catboost import CatBoostClassifier
 from sklearn.preprocessing import StandardScaler
+import zipfile
+import os
 
 st.set_page_config(page_title="Loan Default Risk Prediction", layout="wide")
+
+@st.cache_data
+def load_training_dataset():
+    """Load the actual training dataset from uploaded zip file"""
+    try:
+        # Check if zip file exists in the repo
+        zip_files = [f for f in os.listdir('.') if f.endswith('.zip')]
+        
+        if zip_files:
+            zip_file = zip_files[0]  # Use the first zip file found
+            st.info(f"Found dataset: {zip_file}")
+            
+            # Extract the zip file
+            with zipfile.ZipFile(zip_file, 'r') as zip_ref:
+                zip_ref.extractall('.')
+            
+            # Look for CSV files
+            csv_files = [f for f in os.listdir('.') if f.endswith('.csv') and 'train' in f.lower()]
+            
+            if csv_files:
+                csv_file = csv_files[0]  # Use the first training CSV found
+                st.info(f"Loading training data from: {csv_file}")
+                
+                # Load the actual training dataset
+                df = pd.read_csv(csv_file)
+                
+                # Apply exact same preprocessing as Colab training
+                # 1. Handle missing values (numeric columns) - fill with median
+                numeric_cols = df.select_dtypes(include=['number']).columns
+                df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].median())
+                
+                # 2. Encode categorical variables (exactly like training)
+                df_encoded = pd.get_dummies(df, drop_first=True)
+                
+                # 3. Split features and target
+                if 'TARGET' in df_encoded.columns:
+                    X = df_encoded.drop('TARGET', axis=1)
+                else:
+                    X = df_encoded
+                
+                st.success(f"✅ Loaded training dataset with {X.shape[0]} rows and {X.shape[1]} features")
+                return X
+            else:
+                st.warning("No training CSV file found in zip. Using fallback sample data.")
+                return create_sample_data()
+        else:
+            st.warning("No zip file found. Using fallback sample data.")
+            return create_sample_data()
+            
+    except Exception as e:
+        st.error(f"Error loading training dataset: {e}")
+        st.info("Using fallback sample data.")
+        return create_sample_data()
 
 # Load models
 @st.cache_resource
@@ -24,7 +79,6 @@ log_model, scaler, cat_model = load_models()
 
 @st.cache_data
 def create_sample_data():
-    # Complete sample data with ALL Home Credit features (not just subset)
     sample_data = {
         'SK_ID_CURR': [100002, 100003, 100004, 100006, 100007],
         'NAME_CONTRACT_TYPE': ['Cash loans', 'Cash loans', 'Revolving loans', 'Cash loans', 'Cash loans'],
@@ -155,11 +209,12 @@ def create_sample_data():
     
     return X
 
-# Get training feature structure
-training_features = create_sample_data()
+training_features = load_training_dataset()
 
 st.title("🏦 Loan Default Risk Prediction")
 st.markdown("Predict loan default risk using Logistic Regression and CatBoost models trained on Home Credit data.")
+
+st.info(f"📊 Using training dataset with {training_features.shape[1]} features for feature alignment")
 
 # Sidebar
 st.sidebar.header("Prediction Settings")
@@ -201,7 +256,6 @@ with col2:
                                      "Separated", "Widow"])
 
 if st.button("🔮 Predict Default Risk", type="primary"):
-    # Create new applicant data with same structure as training
     new_applicant = {
         'SK_ID_CURR': 999999,  # Dummy ID
         'NAME_CONTRACT_TYPE': name_contract_type,
@@ -329,13 +383,15 @@ if st.button("🔮 Predict Default Risk", type="primary"):
     new_df_encoded = pd.get_dummies(new_df, drop_first=True)
     
     # 3. Remove target column
-    X_new = new_df_encoded.drop('TARGET', axis=1)
+    if 'TARGET' in new_df_encoded.columns:
+        X_new = new_df_encoded.drop('TARGET', axis=1)
+    else:
+        X_new = new_df_encoded
     
-    # 4. Align with training features (reindex to match exactly)
     X_new_aligned = X_new.reindex(columns=training_features.columns, fill_value=0)
     
     st.write(f"Debug: Input shape: {X_new_aligned.shape}")
-    st.write(f"Debug: Expected shape: {training_features.shape}")
+    st.write(f"Debug: Training features shape: {training_features.shape}")
     
     # Make predictions
     results = {}
