@@ -612,12 +612,14 @@ if results:
         st.markdown(rec_html, unsafe_allow_html=True)
 
         json_blob = json.dumps({k: float(v) for k,v in results.items()}, indent=2)
-        st.download_button("📥 Download predictions (JSON)", data=json_blob, file_name="prediction_resu
+       st.download_button("📥 Download predictions (JSON)", data=json_blob, file_name="prediction_results.json", mime="application/json")
+
 
     else:
         st.error("❌ No predictions could be generated. Please check the model files or feature alignment.")
 
 st.markdown("---")
+
 
 
 
