@@ -502,10 +502,10 @@ if st.button("🔮 Predict Default Risk", type="primary"):
 # 4️⃣ Display results (cards + circular gauge)
 # -------------------------
 def prob_color(prob):
-    if prob > 0.7: return "#d9534f"
-    elif prob > 0.5: return "#f39c12"
-    elif prob > 0.3: return "#3498db"
-    else: return "#2ecc71"
+    if prob > 0.7: return "#d9534f"      # High Risk → Red
+    elif prob > 0.5: return "#f39c12"    # Moderate Risk → Orange
+    elif prob > 0.3: return "#3498db"    # Low Risk → Blue
+    else: return "#2ecc71"               # Very Low Risk → Green
 
 def risk_badge(prob):
     if prob > 0.7: return "High Risk"
@@ -514,33 +514,19 @@ def risk_badge(prob):
     else: return "Very Low Risk"
 
 # -------------------------
-# Circular gauge with gradient animation
+# Circular gauge with matching colors
 # -------------------------
 def circular_gauge_streamlit(pct, size=160):
     radius = size / 2 - 10
     circumference = 2 * 3.1415 * radius
-
-    # Smooth easing function (ease-out cubic)
-    def ease_out_cubic(x): 
-        return 1 - (1 - x) ** 3
-
-    # Gradient color: green -> yellow -> red
-    def get_color(prob):
-        if prob < 0.5:
-            ratio = prob / 0.5
-            r, g, b = int(46 + ratio*(243-46)), int(204 + ratio*(156-204)), 0
-        else:
-            ratio = (prob - 0.5) / 0.5
-            r, g, b = 243, int(156 - ratio*156), 0
-        return f"rgb({r},{g},{b})"
+    color = prob_color(pct)  # Use same color as cards
 
     circle_placeholder = st.empty()
     steps = 60
 
     for step in range(steps + 1):
-        progress = ease_out_cubic(step / steps) * pct
+        progress = step / steps * pct
         offset = circumference * (1 - progress)
-        color = get_color(progress)
         svg = f"""
         <svg width="{size}" height="{size}" viewBox="0 0 {size} {size}">
           <circle cx="{size/2}" cy="{size/2}" r="{radius}" stroke="#2d3748" stroke-width="10" fill="none"/>
@@ -555,11 +541,10 @@ def circular_gauge_streamlit(pct, size=160):
 # -------------------------
 # Display prediction results
 # -------------------------
-
-# Ensure results exists
-if 'results' in locals() and results:  
-    # --- Display model cards ---
+if results:
     st.markdown("<h3 style='color:white;'>✅ Prediction completed!</h3>", unsafe_allow_html=True)
+
+    # --- Model cards ---
     n = len(results)
     cols = st.columns(n)
     for (model_name, probability), col in zip(results.items(), cols):
@@ -588,16 +573,14 @@ if 'results' in locals() and results:
     avg_prob = np.mean(list(results.values()))
     if avg_prob > 0.7:
         recommendation = "⚠️ REJECT LOAN — Very high default risk"
-        rec_color = "#d9534f"
     elif avg_prob > 0.5:
         recommendation = "⚠️ REVIEW CAREFULLY — Moderate to high default risk"
-        rec_color = "#f39c12"
     elif avg_prob > 0.3:
         recommendation = "ℹ️ APPROVE WITH CONDITIONS — Low to moderate default risk"
-        rec_color = "#3498db"
     else:
         recommendation = "✅ APPROVE LOAN — Low default risk"
-        rec_color = "#2ecc71"
+
+    rec_color = prob_color(avg_prob)
 
     c1, c2 = st.columns([1,2])
     with c1:
@@ -622,6 +605,8 @@ if 'results' in locals() and results:
         )
 
 st.markdown("---")
+
+
 
 
 
