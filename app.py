@@ -332,6 +332,9 @@ with st.container():
             ["Single / not married", "Married", "Civil marriage", "Separated", "Widow"]
         )
 
+# --- Initialize results to avoid NameError ---
+results = {}  # <--- added this line
+
 # --- Predict Button ---
 st.markdown("### 🔮 Run Prediction")
 if st.button("Predict Default Risk", type="primary"):
@@ -620,6 +623,7 @@ if results:
 else:
     st.error("❌ No predictions could be generated. Please check the model files and feature alignment.", icon="❌")
 st.markdown("---")
+
 
 
 
