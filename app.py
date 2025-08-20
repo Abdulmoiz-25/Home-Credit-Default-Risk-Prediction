@@ -63,9 +63,63 @@ def load_training_dataset():
 
 
 # Load models
+st.set_page_config(page_title="Loan Default Risk Prediction", layout="wide")
+
+@st.cache_data
+def load_training_dataset():
+    """Load the actual training dataset from uploaded zip file"""
+    try:
+        # Check if zip file exists in the repo
+        zip_files = [f for f in os.listdir('.') if f.endswith('.zip')]
+
+        with st.sidebar.expander("📊 Dataset Status", expanded=False):  # collapsed by default
+            if zip_files:
+                zip_file = zip_files[0]  # Use the first zip file found
+                st.markdown(f"📦 Found dataset: **{zip_file}**")
+
+                # Extract the zip file
+                with zipfile.ZipFile(zip_file, 'r') as zip_ref:
+                    zip_ref.extractall('.')
+
+                # Look for CSV files
+                csv_files = [f for f in os.listdir('.') if f.endswith('.csv') and 'train' in f.lower()]
+
+                if csv_files:
+                    csv_file = csv_files[0]  # Use the first training CSV found
+                    st.markdown(f"📂 Using training data: **{csv_file}**")
+
+                    # Load the actual training dataset
+                    df = pd.read_csv(csv_file)
+
+                    # Apply exact same preprocessing as Colab training
+                    numeric_cols = df.select_dtypes(include=['number']).columns
+                    df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].median())
+
+                    df_encoded = pd.get_dummies(df, drop_first=True)
+
+                    if 'TARGET' in df_encoded.columns:
+                        X = df_encoded.drop('TARGET', axis=1)
+                    else:
+                        X = df_encoded
+
+                    st.markdown(f"✅ Training dataset loaded ({X.shape[0]} rows, {X.shape[1]} features)")
+                    return X
+                else:
+                    st.markdown("⚠️ No training CSV file found in zip — using fallback sample data.")
+                    return create_sample_data()
+            else:
+                st.markdown("⚠️ No zip file found — using fallback sample data.")
+                return create_sample_data()
+
+    except Exception as e:
+        with st.sidebar.expander("📊 Dataset Status", expanded=False):  # collapsed by default
+            st.markdown(f"❌ Error loading training dataset: `{e}`")
+            st.markdown("⚠️ Using fallback sample data.")
+        return create_sample_data()
+
 @st.cache_resource
 def load_models():
-    with st.sidebar.expander("🤖 Model Status", expanded=True):
+    with st.sidebar.expander("🤖 Model Status", expanded=False):  # collapsed by default
         try:
             log_model = joblib.load("log_model.pkl")
             st.markdown("✅ Logistic Regression model loaded")
@@ -83,6 +137,7 @@ def load_models():
             return None, None, None
 
 log_model, scaler, cat_model = load_models()
+
 
 
 @st.cache_data
@@ -506,6 +561,7 @@ if st.button("Predict Default Risk", type="primary"):
 
 st.markdown("---")
 st.markdown("**Note:** This app uses models trained on Home Credit dataset with business cost optimization.")
+
 
 
 
