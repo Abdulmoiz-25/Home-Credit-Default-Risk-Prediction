@@ -333,6 +333,8 @@ with st.container():
             ["Single / not married", "Married", "Civil marriage", "Separated", "Widow"]
         )
 
+# Initialize results globally
+results = {}
 
 # --- Predict Button ---
 if st.button("🔮 Predict Default Risk", type="primary"):
@@ -600,4 +602,5 @@ else:
     st.error("❌ No predictions could be generated. Please check the model files or feature alignment.")
 
 st.markdown("---")
+
 
