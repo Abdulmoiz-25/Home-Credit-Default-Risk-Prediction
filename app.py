@@ -147,29 +147,19 @@ if mode == "Single Applicant":
                 else:
                     mapped_data[training_feature] = value
 
-        mapped_data['SK_ID_CURR'] = 1  # Dummy ID for single prediction
+        ordered_data = {'SK_ID_CURR': 1}  # Dummy ID for single prediction
+        ordered_data.update(mapped_data)
         
-        # Add other commonly expected features with reasonable defaults
-        if 'AMT_REQ_CREDIT_BUREAU_DAY' not in mapped_data:
-            mapped_data['AMT_REQ_CREDIT_BUREAU_DAY'] = 0
-        if 'AMT_REQ_CREDIT_BUREAU_HOUR' not in mapped_data:
-            mapped_data['AMT_REQ_CREDIT_BUREAU_HOUR'] = 0
-        if 'AMT_REQ_CREDIT_BUREAU_MON' not in mapped_data:
-            mapped_data['AMT_REQ_CREDIT_BUREAU_MON'] = 0
-        if 'AMT_REQ_CREDIT_BUREAU_QRT' not in mapped_data:
-            mapped_data['AMT_REQ_CREDIT_BUREAU_QRT'] = 0
-        if 'AMT_REQ_CREDIT_BUREAU_WEEK' not in mapped_data:
-            mapped_data['AMT_REQ_CREDIT_BUREAU_WEEK'] = 0
-        if 'AMT_REQ_CREDIT_BUREAU_YEAR' not in mapped_data:
-            mapped_data['AMT_REQ_CREDIT_BUREAU_YEAR'] = 0
-
-        # Build input row aligned to all features with proper defaults
-        new_app = pd.DataFrame([mapped_data]).reindex(columns=X.columns, fill_value=0)
+        new_app = pd.DataFrame([ordered_data]).reindex(columns=X.columns, fill_value=0)
+        
+        if len(new_app.columns) != len(X.columns):
+            st.error(f"Feature mismatch: Expected {len(X.columns)} features, got {len(new_app.columns)}")
+            st.stop()
 
         preds = {}
         if "Logistic Regression" in selected_models:
             try:
-                scaled = scaler.transform(new_app.values)
+                scaled = scaler.transform(new_app)
                 preds["Logistic Regression"] = float(log_model.predict_proba(scaled)[:, 1][0])
             except Exception as e:
                 st.error(f"Error with Logistic Regression prediction: {str(e)}")
