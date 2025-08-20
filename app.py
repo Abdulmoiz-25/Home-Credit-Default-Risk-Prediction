@@ -458,7 +458,7 @@ if st.button("🔮 Predict Default Risk", type="primary"):
 
     new_df = pd.DataFrame([new_applicant])
 
-   # -------------------------
+ # -------------------------
 # 2️⃣ Preprocess input
 # -------------------------
 try:
@@ -609,6 +609,7 @@ if results:
         )
 
 st.markdown("---")
+
 
 
 
