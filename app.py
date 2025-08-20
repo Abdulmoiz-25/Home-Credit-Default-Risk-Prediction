@@ -32,10 +32,19 @@ log_model, scaler, cat_model = load_models()
 # Load dataset (for feature alignment)
 @st.cache_data
 def load_sample():
-    df = pd.read_csv("sample_train.csv")
-    X_base = df.drop("TARGET", axis=1)
-    X_encoded = pd.get_dummies(X_base, drop_first=True)
-    return X_encoded
+    try:
+        df = pd.read_csv("sample_train.csv")
+        X = df.drop("TARGET", axis=1)
+        return X
+    except FileNotFoundError:
+        # Create dummy data with the correct simple features
+        dummy_data = {
+            'income': [30000],
+            'age': [28], 
+            'loan_amount': [5000],
+            'credit_score': [650]
+        }
+        return pd.DataFrame(dummy_data)
 
 X = load_sample()
 
@@ -104,54 +113,26 @@ if mode == "Single Applicant":
     col1, col2 = st.columns(2)
     
     with col1:
-        amt_income_total = st.number_input("Annual Income", value=150000.0, min_value=0.0)
-        amt_credit = st.number_input("Credit Amount", value=500000.0, min_value=0.0)
-        amt_annuity = st.number_input("Loan Annuity", value=25000.0, min_value=0.0)
-        amt_goods_price = st.number_input("Goods Price", value=450000.0, min_value=0.0)
-        days_birth = st.number_input("Age (years)", value=35, min_value=18, max_value=100)
+        income = st.number_input("Annual Income", value=30000, min_value=0)
+        age = st.number_input("Age", value=28, min_value=18, max_value=100)
     
     with col2:
-        days_employed = st.number_input("Years Employed", value=5, min_value=0, max_value=50)
-        cnt_children = st.number_input("Number of Children", value=0, min_value=0, max_value=10)
-        cnt_fam_members = st.number_input("Family Members", value=2, min_value=1, max_value=10)
-        region_rating_client = st.selectbox("Region Rating", [1, 2, 3], index=1)
-        name_education_type = st.selectbox("Education", 
-            ["Secondary / secondary special", "Higher education", "Incomplete higher", "Lower secondary", "Academic degree"])
+        loan_amount = st.number_input("Loan Amount", value=5000, min_value=0)
+        credit_score = st.number_input("Credit Score", value=650, min_value=300, max_value=850)
     
     predict_button = st.button("🔮 Predict Default Risk", type="primary")
     
     if predict_button:
         input_data = {
-            'SK_ID_CURR': 100000,  # Dummy ID
-            'AMT_INCOME_TOTAL': amt_income_total,
-            'AMT_CREDIT': amt_credit,
-            'AMT_ANNUITY': amt_annuity,
-            'AMT_GOODS_PRICE': amt_goods_price,
-            'DAYS_BIRTH': -days_birth * 365,  # Convert to negative days
-            'DAYS_EMPLOYED': -days_employed * 365,  # Convert to negative days
-            'CNT_CHILDREN': cnt_children,
-            'CNT_FAM_MEMBERS': cnt_fam_members,
-            'REGION_RATING_CLIENT': region_rating_client,
-            'NAME_EDUCATION_TYPE': name_education_type,
-            # Add default values for other required categorical fields
-            'NAME_CONTRACT_TYPE': 'Cash loans',
-            'CODE_GENDER': 'M',
-            'FLAG_OWN_CAR': 'N',
-            'FLAG_OWN_REALTY': 'Y',
-            'NAME_TYPE_SUITE': 'Unaccompanied',
-            'NAME_INCOME_TYPE': 'Working',
-            'NAME_FAMILY_STATUS': 'Married',
-            'NAME_HOUSING_TYPE': 'House / apartment',
-            'OCCUPATION_TYPE': 'Laborers',
-            'ORGANIZATION_TYPE': 'Business Entity Type 3'
+            'income': income,
+            'age': age,
+            'loan_amount': loan_amount,
+            'credit_score': credit_score
         }
         
-        # Create DataFrame and apply one-hot encoding
         new_app_df = pd.DataFrame([input_data])
-        new_app_encoded = pd.get_dummies(new_app_df, drop_first=True)
         
-        # Align with training features
-        new_app_aligned = new_app_encoded.reindex(columns=X.columns, fill_value=0)
+        new_app_aligned = new_app_df.reindex(columns=X.columns, fill_value=0)
 
         preds = {}
         if "Logistic Regression" in selected_models:
@@ -164,14 +145,7 @@ if mode == "Single Applicant":
 
         if "CatBoost" in selected_models:
             try:
-                catboost_data = new_app_aligned.copy()
-                if 'SK_ID_CURR' in catboost_data.columns:
-                    # Move SK_ID_CURR to first position
-                    cols = catboost_data.columns.tolist()
-                    cols.insert(0, cols.pop(cols.index('SK_ID_CURR')))
-                    catboost_data = catboost_data[cols]
-                
-                preds["CatBoost"] = float(cat_model.predict_proba(catboost_data)[:, 1][0])
+                preds["CatBoost"] = float(cat_model.predict_proba(new_app_aligned.values)[:, 1][0])
             except Exception as e:
                 st.error(f"Error with CatBoost prediction: {str(e)}")
                 st.info("Feature alignment issue. Check that CatBoost was trained on the same features.")
@@ -201,9 +175,7 @@ else:
         else:
             feats = new_df.copy()
 
-        # Align to training feature space
-        new_df_encoded = pd.get_dummies(feats, drop_first=True)
-        new_df_aligned = new_df_encoded.reindex(columns=X.columns, fill_value=0)
+        new_df_aligned = feats.reindex(columns=X.columns, fill_value=0)
 
         # Predictions
         preds = {}
@@ -212,12 +184,7 @@ else:
             preds["Logistic Regression"] = log_model.predict_proba(new_scaled)[:, 1]
 
         if "CatBoost" in selected_models:
-            catboost_data = new_df_aligned.copy()
-            if 'SK_ID_CURR' in catboost_data.columns:
-                cols = catboost_data.columns.tolist()
-                cols.insert(0, cols.pop(cols.index('SK_ID_CURR')))
-                catboost_data = catboost_data[cols]
-            preds["CatBoost"] = cat_model.predict_proba(catboost_data)[:, 1]
+            preds["CatBoost"] = cat_model.predict_proba(new_df_aligned.values)[:, 1]
 
         pred_df = pd.DataFrame(preds, index=new_df.index)
         if has_target:
