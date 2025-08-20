@@ -7,7 +7,6 @@ from sklearn.preprocessing import StandardScaler
 import zipfile
 import os
 import json
-import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Loan Default Risk Prediction", layout="wide")
 
@@ -335,7 +334,6 @@ with st.container():
         )
 
 
-
 # --- Predict Button ---
 if st.button("🔮 Predict Default Risk", type="primary"):
 
@@ -459,7 +457,7 @@ if st.button("🔮 Predict Default Risk", type="primary"):
 
     new_df = pd.DataFrame([new_applicant])
 
-   # -------------------------
+    # -------------------------
     # 2️⃣ Preprocess input
     # -------------------------
     try:
@@ -500,13 +498,13 @@ if st.button("🔮 Predict Default Risk", type="primary"):
             st.error(f"CatBoost error: {e}")
 
     # -------------------------
-    # 4️⃣ Display results with animated gradient circular gauges
+    # 4️⃣ Display results (cards + circular gauge)
     # -------------------------
     def prob_color(prob):
-        if prob < 0.3: return "#2ecc71"  # green
-        elif prob < 0.5: return "#3498db"  # blue
-        elif prob < 0.7: return "#f39c12"  # orange
-        else: return "#d9534f"  # red
+        if prob > 0.7: return "#d9534f"
+        elif prob > 0.5: return "#f39c12"
+        elif prob > 0.3: return "#3498db"
+        else: return "#2ecc71"
 
     def risk_badge(prob):
         if prob > 0.7: return "High Risk"
@@ -514,77 +512,69 @@ if st.button("🔮 Predict Default Risk", type="primary"):
         elif prob > 0.3: return "Low Risk"
         else: return "Very Low Risk"
 
-    def gradient_circular_gauge(prob, size=80):
-        pct = prob * 100
-        radius = size / 2 - 8
+    def circular_gauge_svg(pct, size=120):
+        radius = size / 2 - 10
         circumference = 2 * 3.1415 * radius
-        color = prob_color(prob)
-
-        html_code = f"""
-        <div style="position: relative; width:{size}px; height:{size}px; display:inline-block;">
-          <svg width="{size}" height="{size}" viewBox="0 0 {size} {size}">
-            <circle cx="{size/2}" cy="{size/2}" r="{radius}" stroke="#2d3748" stroke-width="10" fill="none"/>
-            <circle id="gauge" cx="{size/2}" cy="{size/2}" r="{radius}" stroke="{color}" stroke-width="10" fill="none"
-                    stroke-dasharray="{circumference}" stroke-dashoffset="{circumference}"
-                    transform="rotate(-90 {size/2} {size/2})"/>
-            <text id="gaugeText" x="50%" y="50%" text-anchor="middle" dy="7" fill="white" font-size="14">0%</text>
-          </svg>
-        </div>
-        <script>
-          const gauge = document.getElementById("gauge");
-          const text = document.getElementById("gaugeText");
-          const circumference = {circumference};
-          const targetPct = {pct};
-          let progress = 0;
-          const duration = 1200;
-          const stepTime = 12;
-          const step = targetPct / (duration / stepTime);
-
-          const interval = setInterval(() => {{
-            progress += step;
-            if(progress >= targetPct) {{
-              progress = targetPct;
-              clearInterval(interval);
-            }}
-            const offset = circumference * (1 - progress / 100);
-            gauge.setAttribute("stroke-dashoffset", offset);
-            text.textContent = progress.toFixed(0) + "%";
-          }}, stepTime);
-        </script>
+        offset = circumference * (1 - pct / 100)
+        svg = f"""
+        <svg width="{size}" height="{size}" viewBox="0 0 {size} {size}">
+          <circle cx="{size/2}" cy="{size/2}" r="{radius}" stroke="#2d3748" stroke-width="10" fill="none"/>
+          <circle cx="{size/2}" cy="{size/2}" r="{radius}" stroke="#00e676" stroke-width="10" fill="none"
+                  stroke-dasharray="{circumference}" stroke-dashoffset="{offset}" transform="rotate(-90 {size/2} {size/2})"/>
+          <text x="50%" y="50%" text-anchor="middle" dy="7" fill="white" font-size="18">{pct:.1f}%</text>
+        </svg>
         """
-        components.html(html_code, height=size+20)
+        return svg
 
     if results:
+        # --- Display model cards ---
         st.markdown("<h3 style='color:white;'>✅ Prediction completed!</h3>", unsafe_allow_html=True)
         n = len(results)
         cols = st.columns(n)
         for (model_name, probability), col in zip(results.items(), cols):
-            pct_display = f"{probability:.1%}"
-            badge = risk_badge(probability)
-            color = prob_color(probability)
-            col.markdown(f"<div style='color:white;font-size:16px;margin-bottom:4px;'>{model_name} Prediction</div>", unsafe_allow_html=True)
-            gradient_circular_gauge(probability, size=120)
-            col.markdown(f"<div style='margin-top:6px;text-align:center;'><span style='background:{color};color:#fff;padding:4px 8px;border-radius:999px;font-size:13px;'>{badge}</span></div>", unsafe_allow_html=True)
+            pct = float(probability)
+            color = prob_color(pct)
+            badge = risk_badge(pct)
+            pct_display = f"{pct:.1%}"
+            bar_width = int(pct * 100)
+            gradient_css = f"background: linear-gradient(90deg, {color}, rgba(255,255,255,0.06));"
+            card_html = f"""
+            <div style='border-radius:12px;padding:18px;background:#1f2937;margin-bottom:18px;box-shadow:0 6px 18px rgba(8,12,20,0.6);'>
+              <div style='font-size:16px;color:#cbd5e1;margin-bottom:6px;'>{model_name} Prediction</div>
+              <div style='font-size:44px;font-weight:800;margin:4px 0 8px 0;color:{color};'>{pct_display}</div>
+              <div style="margin-bottom:8px;">
+                <span style="background:{color};color:#fff;padding:6px 10px;border-radius:999px;font-size:13px;">{badge}</span>
+                <span style="margin-left:10px;font-size:13px;color:#9aa7b8;">Probability of default</span>
+              </div>
+              <div style="width:100%;height:10px;background: rgba(255,255,255,0.06);border-radius:999px;margin-top:12px;">
+                <div style="height:100%;border-radius:999px;{gradient_css} width:{bar_width}%;"></div>
+              </div>
+            </div>
+            """
+            col.markdown(card_html, unsafe_allow_html=True)
 
-        # --- Average gauge and recommendation ---
+        # --- Circular gauge + summary ---
         avg_prob = np.mean(list(results.values()))
         avg_pct = float(avg_prob * 100)
         if avg_prob > 0.7:
             recommendation = "⚠️ REJECT LOAN — Very high default risk"
+            rec_color = "#d9534f"
         elif avg_prob > 0.5:
             recommendation = "⚠️ REVIEW CAREFULLY — Moderate to high default risk"
+            rec_color = "#f39c12"
         elif avg_prob > 0.3:
             recommendation = "ℹ️ APPROVE WITH CONDITIONS — Low to moderate default risk"
+            rec_color = "#3498db"
         else:
             recommendation = "✅ APPROVE LOAN — Low default risk"
+            rec_color = "#2ecc71"
 
         c1, c2 = st.columns([1,2])
         with c1:
-            gradient_circular_gauge(avg_prob, size=160)
+            st.markdown(circular_gauge_svg(avg_pct, size=160), unsafe_allow_html=True)
             st.markdown(f"<div style='text-align:center;color:#b9c6d4;'>Average probability</div>", unsafe_allow_html=True)
 
         with c2:
-            rec_color = prob_color(avg_prob)
             rec_html = f"""
             <div style='border-radius:10px;padding:14px;margin-top:18px;background:#111827;box-shadow:0 8px 20px rgba(0,0,0,0.45);'>
               <div style='font-size:20px;font-weight:800;color:{rec_color};margin-bottom:6px;'>{recommendation}</div>
@@ -592,6 +582,7 @@ if st.button("🔮 Predict Default Risk", type="primary"):
             </div>
             """
             st.markdown(rec_html, unsafe_allow_html=True)
+
             json_blob = json.dumps({k: float(v) for k,v in results.items()}, indent=2)
             st.download_button("📥 Download predictions (JSON)", data=json_blob, file_name="prediction_results.json", mime="application/json")
 
@@ -599,3 +590,4 @@ if st.button("🔮 Predict Default Risk", type="primary"):
         st.error("❌ No predictions could be generated. Please check the model files or feature alignment.")
 
 st.markdown("---")
+
