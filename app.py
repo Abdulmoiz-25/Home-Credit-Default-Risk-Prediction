@@ -18,7 +18,6 @@ def load_training_dataset():
         
         if zip_files:
             zip_file = zip_files[0]  # Use the first zip file found
-            st.info(f"Found dataset: {zip_file}")
             
             # Extract the zip file
             with zipfile.ZipFile(zip_file, 'r') as zip_ref:
@@ -29,7 +28,6 @@ def load_training_dataset():
             
             if csv_files:
                 csv_file = csv_files[0]  # Use the first training CSV found
-                st.info(f"Loading training data from: {csv_file}")
                 
                 # Load the actual training dataset
                 df = pd.read_csv(csv_file)
@@ -48,18 +46,13 @@ def load_training_dataset():
                 else:
                     X = df_encoded
                 
-                st.success(f"✅ Loaded training dataset with {X.shape[0]} rows and {X.shape[1]} features")
                 return X
             else:
-                st.warning("No training CSV file found in zip. Using fallback sample data.")
                 return create_sample_data()
         else:
-            st.warning("No zip file found. Using fallback sample data.")
             return create_sample_data()
             
     except Exception as e:
-        st.error(f"Error loading training dataset: {e}")
-        st.info("Using fallback sample data.")
         return create_sample_data()
 
 # Load models
@@ -213,8 +206,6 @@ training_features = load_training_dataset()
 
 st.title("🏦 Loan Default Risk Prediction")
 st.markdown("Predict loan default risk using Logistic Regression and CatBoost models trained on Home Credit data.")
-
-st.info(f"📊 Using training dataset with {training_features.shape[1]} features for feature alignment")
 
 # Sidebar
 st.sidebar.header("Prediction Settings")
@@ -428,10 +419,6 @@ if st.button("🔮 Predict Default Risk", type="primary"):
     
     X_new_aligned = X_new_aligned.fillna(0)
     
-    st.write(f"Debug: Input shape: {X_new_aligned.shape}")
-    st.write(f"Debug: Training features shape: {training_features.shape}")
-    st.write(f"Debug: Contains NaN: {X_new_aligned.isnull().any().any()}")
-    
     # Make predictions
     results = {}
     
@@ -482,3 +469,5 @@ if st.button("🔮 Predict Default Risk", type="primary"):
     else:
         st.error("❌ No predictions could be generated. Please check the model files.")
 
+st.markdown("---")
+st.markdown("**Note:** This app uses models trained on Home Credit dataset with business cost optimization.")
