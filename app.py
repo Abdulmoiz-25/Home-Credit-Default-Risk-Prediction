@@ -400,79 +400,127 @@ if st.button("Predict Default Risk", type="primary"):
     X_new = new_df_encoded.drop('TARGET', axis=1) if 'TARGET' in new_df_encoded.columns else new_df_encoded
     X_new_aligned = X_new.reindex(columns=training_features.columns, fill_value=0).fillna(0)
 
-    # --- Make Predictions ---
-    results = {}
-    if model_choice in ["Logistic Regression", "Both"]:
-        try:
-            X_scaled = scaler.transform(X_new_aligned)
-            results["Logistic Regression"] = log_model.predict_proba(X_scaled)[0, 1]
-        except Exception as e:
-            st.error(f"Logistic Regression error: {e}")
-
-    if model_choice in ["CatBoost", "Both"]:
-        try:
-            results["CatBoost"] = cat_model.predict_proba(X_new_aligned)[0, 1]
-        except Exception as e:
-            st.error(f"CatBoost error: {e}")
-
-    # --- Display Results with Gradient Cards & Progress Bars ---
-    if results:
-        st.markdown(
-            """
-            <style>
-            .model-card {border-radius:12px;padding:18px;box-shadow:0 6px 18px rgba(8,12,20,0.6);background:linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.005));margin-bottom:18px;}
-            .model-title {font-size:16px;color:#cbd5e1;margin-bottom:6px;}
-            .model-value {font-size:44px;font-weight:800;margin:4px 0 8px 0;letter-spacing:-1px;color:white;}
-            .badge {font-weight:700;padding:6px 10px;border-radius:999px;color:#fff;display:inline-block;font-size:13px;}
-            .progress-bar-outer {width:100%;height:10px;background: rgba(255,255,255,0.06);border-radius:999px;margin-top:12px;}
-            .progress-bar-inner {height:100%;border-radius:999px;}
-            .small-muted {color:#94a3b8;font-size:13px;}
-            </style>
-            """,
-            unsafe_allow_html=True
-        )
-
-        # Create columns for each model
-        cols = st.columns(len(results))
-        for (model_name, probability), col in zip(results.items(), cols):
-            pct = float(probability)
-            color = prob_color(pct)  # Define prob_color function to map probability to color
-            badge = risk_badge(pct)  # Define risk_badge function to map probability to risk level
-            pct_display = f"{pct:.1%}"
-            bar_width = int(pct * 100)
-            gradient_css = f"background: linear-gradient(90deg, {color}, rgba(255,255,255,0.06));"
-
-            card_html = f"""
-            <div class="model-card">
-              <div class="model-title">{model_name} Prediction</div>
-              <div class="model-value" style="color: {color};">{pct_display}</div>
-              <div style="margin-bottom:8px;">
-                <span class="badge" style="background:{color};">{badge}</span>
-                <span style="margin-left:10px; font-size:13px; color:#9aa7b8;">Probability of default</span>
-              </div>
-              <div class="progress-bar-outer" aria-hidden="true">
-                <div class="progress-bar-inner" style="{gradient_css} width: {bar_width}%;"></div>
-              </div>
-            </div>
-            """
-            col.markdown(card_html, unsafe_allow_html=True)
-
-        # Business interpretation
-        st.subheader("Business Interpretation")
-        avg_prob = np.mean(list(results.values()))
-        if avg_prob > 0.7:
-            st.error("⚠️ **REJECT LOAN** - Very high default risk")
-        elif avg_prob > 0.5:
-            st.warning("⚠️ **REVIEW CAREFULLY** - Moderate to high default risk")
-        elif avg_prob > 0.3:
-            st.info("ℹ️ **APPROVE WITH CONDITIONS** - Low to moderate default risk")
-        else:
-            st.success("✅ **APPROVE LOAN** - Low default risk")
-
+   # --- Helper functions for UI ---
+def prob_color(prob):
+    """Return a color based on probability."""
+    if prob > 0.7:
+        return "#d9534f"  # red
+    elif prob > 0.5:
+        return "#f39c12"  # orange
+    elif prob > 0.3:
+        return "#3498db"  # blue
     else:
-        st.error("❌ No predictions could be generated. Please check the model files or feature alignment.")
+        return "#2ecc71"  # green
 
+def risk_badge(prob):
+    """Return a badge label based on probability."""
+    if prob > 0.7:
+        return "HIGH RISK"
+    elif prob > 0.5:
+        return "MODERATE RISK"
+    elif prob > 0.3:
+        return "LOW-MODERATE RISK"
+    else:
+        return "LOW RISK"
+
+def circular_gauge_svg(pct, size=150):
+    """Generate circular gauge SVG."""
+    pct = min(max(pct, 0), 100)
+    angle = int(360 * pct / 100)
+    color = prob_color(pct / 100)
+    svg = f"""
+    <svg width="{size}" height="{size}" viewBox="0 0 36 36">
+      <circle r="16" cx="18" cy="18" fill="none" stroke="#eee" stroke-width="4"/>
+      <circle r="16" cx="18" cy="18" fill="none" stroke="{color}" stroke-width="4" 
+        stroke-dasharray="{angle}, 360" stroke-linecap="round" transform="rotate(-90 18 18)"/>
+      <text x="18" y="22" font-size="6" text-anchor="middle" fill="white">{pct:.1f}%</text>
+    </svg>
+    """
+    return svg
+
+# --- Make predictions ---
+results = {}
+
+if model_choice in ["Logistic Regression", "Both"]:
+    try:
+        X_scaled = scaler.transform(X_new_aligned)
+        lr_prob = log_model.predict_proba(X_scaled)[0, 1]
+        results["Logistic Regression"] = lr_prob
+    except Exception as e:
+        st.error(f"Logistic Regression error: {e}")
+
+if model_choice in ["CatBoost", "Both"]:
+    try:
+        cb_prob = cat_model.predict_proba(X_new_aligned)[0, 1]
+        results["CatBoost"] = cb_prob
+    except Exception as e:
+        st.error(f"CatBoost error: {e}")
+
+# --- Display results with cards and circular gauge ---
+if results:
+    st.markdown("### ✅ Prediction completed!")
+    
+    # Columns for model cards
+    n = len(results)
+    cols = st.columns(n)
+    
+    for (model_name, probability), col in zip(results.items(), cols):
+        pct = float(probability)
+        color = prob_color(pct)
+        badge = risk_badge(pct)
+        pct_display = f"{pct:.1%}"
+        bar_width = int(pct * 100)
+        gradient_css = f"background: linear-gradient(90deg, {color}, rgba(255,255,255,0.06));"
+        card_html = f"""
+        <div style="border-radius:12px;padding:18px;box-shadow:0 6px 18px rgba(8,12,20,0.6);background:linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.005));margin-bottom:18px;">
+          <div style="font-size:16px;color:#cbd5e1;margin-bottom:6px;">{model_name} Prediction</div>
+          <div style="font-size:44px;font-weight:800;margin:4px 0 8px 0;letter-spacing:-1px;color:{color};">{pct_display}</div>
+          <div style="margin-bottom:8px;">
+            <span style="font-weight:700;padding:6px 10px;border-radius:999px;color:#fff;background:{color};display:inline-block;font-size:13px;">{badge}</span>
+            <span style="margin-left:10px;font-size:13px;color:#9aa7b8;">Probability of default</span>
+          </div>
+          <div style="width:100%;height:10px;background: rgba(255,255,255,0.06);border-radius:999px;margin-top:12px;">
+            <div style="{gradient_css} width: {bar_width}%; height:100%; border-radius:999px;"></div>
+          </div>
+        </div>
+        """
+        col.markdown(card_html, unsafe_allow_html=True)
+    
+    # Summary section with circular gauge
     st.markdown("---")
-    st.markdown("**Note:** This app uses models trained on Home Credit dataset with business cost optimization.")
+    avg_prob = np.mean(list(results.values()))
+    avg_pct = float(avg_prob * 100)
+    
+    if avg_prob > 0.7:
+        recommendation = "⚠️ REJECT LOAN — Very high default risk"
+        rec_color = "#d9534f"
+    elif avg_prob > 0.5:
+        recommendation = "⚠️ REVIEW CAREFULLY — Moderate to high default risk"
+        rec_color = "#f39c12"
+    elif avg_prob > 0.3:
+        recommendation = "ℹ️ APPROVE WITH CONDITIONS — Low to moderate default risk"
+        rec_color = "#3498db"
+    else:
+        recommendation = "✅ APPROVE LOAN — Low default risk"
+        rec_color = "#2ecc71"
 
+    c1, c2 = st.columns([1,2])
+    with c1:
+        svg = circular_gauge_svg(avg_pct, size=160)
+        st.markdown(svg, unsafe_allow_html=True)
+        st.markdown(f"<div style='text-align:center; margin-top:8px; color:#b9c6d4;'>Average probability</div>", unsafe_allow_html=True)
 
+    with c2:
+        rec_html = f"""
+        <div style="border-radius:10px;padding:14px;margin-top:18px;background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); box-shadow: 0 8px 20px rgba(0,0,0,0.45);">
+          <div style="font-size:20px;font-weight:800;color:{rec_color};margin-bottom:6px;">{recommendation}</div>
+          <div style="color:#94a3b8;font-size:13px;">Average probability across selected models: <strong style="color:white;">{avg_prob:.1%}</strong></div>
+        </div>
+        """
+        st.markdown(rec_html, unsafe_allow_html=True)
+        json_blob = json.dumps({k: float(v) for k,v in results.items()}, indent=2)
+        st.download_button("📥 Download predictions (JSON)", data=json_blob, file_name="prediction_results.json", mime="application/json")
+
+else:
+    st.error("❌ No predictions could be generated. Please check the model files or feature alignment.")
+st.markdown("---")
