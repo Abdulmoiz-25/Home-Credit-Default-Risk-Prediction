@@ -498,7 +498,7 @@ if st.button("🔮 Predict Default Risk", type="primary"):
         except Exception as e:
             st.error(f"CatBoost error: {e}")
 
-   # -------------------------
+# -------------------------
 # 4️⃣ Display results (cards + circular gauge)
 # -------------------------
 def prob_color(prob):
@@ -555,7 +555,9 @@ def circular_gauge_streamlit(pct, size=160):
 # -------------------------
 # Display prediction results
 # -------------------------
-if results:
+
+# Ensure results exists
+if 'results' in locals() and results:  
     # --- Display model cards ---
     st.markdown("<h3 style='color:white;'>✅ Prediction completed!</h3>", unsafe_allow_html=True)
     n = len(results)
@@ -619,8 +621,8 @@ if results:
             mime="application/json"
         )
 
-
 st.markdown("---")
+
 
 
 
