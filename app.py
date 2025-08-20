@@ -92,24 +92,60 @@ def cm_counts_to_df(cm):
         "TN":[tn], "FP":[fp], "FN":[fn], "TP":[tp]
     })
 
+# Feature mapping from user-friendly names to actual training feature names
+FEATURE_MAPPING = {
+    'income': 'AMT_INCOME_TOTAL',
+    'age': 'DAYS_BIRTH',  # Note: this will need to be converted (age * -365)
+    'loan_amount': 'AMT_CREDIT',
+    'credit_score': 'AMT_ANNUITY',  # Using as proxy - adjust as needed
+    'employment_years': 'DAYS_EMPLOYED',  # Will need conversion
+    'family_size': 'CNT_FAM_MEMBERS',
+    'children_count': 'CNT_CHILDREN',
+    'goods_price': 'AMT_GOODS_PRICE',
+    'annuity': 'AMT_ANNUITY',
+    'credit_bureau_requests': 'AMT_REQ_CREDIT_BUREAU_DAY'
+}
+
+# Reverse mapping for display
+DISPLAY_MAPPING = {v: k for k, v in FEATURE_MAPPING.items()}
+
 # ---------------------------------------------------
 # Single Applicant Prediction
 # ---------------------------------------------------
 if mode == "Single Applicant":
     st.subheader("Single Applicant Prediction")
 
-    # For simplicity, show first 10 features interactively (you can increase)
     applicant_data = {}
-    show_cols = list(X.columns[:10]) if len(X.columns) > 10 else list(X.columns)
-    for col in show_cols:
-        if np.issubdtype(X[col].dtype, np.number):
-            applicant_data[col] = st.number_input(f"{col}", float(X[col].median()))
-        else:
-            # For dummy/one-hot columns treat as binary toggle
-            applicant_data[col] = st.selectbox(f"{col}", options=[0, 1], index=0)
+    
+    # Define user-friendly inputs
+    user_inputs = {
+        'income': st.number_input("Annual Income", value=50000.0, min_value=0.0),
+        'age': st.number_input("Age (years)", value=35, min_value=18, max_value=100),
+        'loan_amount': st.number_input("Loan Amount", value=100000.0, min_value=0.0),
+        'credit_score': st.number_input("Credit Score (as annuity proxy)", value=15000.0, min_value=0.0),
+        'employment_years': st.number_input("Employment Years", value=5, min_value=0, max_value=50),
+        'family_size': st.number_input("Family Size", value=2, min_value=1, max_value=10),
+        'children_count': st.number_input("Number of Children", value=0, min_value=0, max_value=10),
+        'goods_price': st.number_input("Goods Price", value=90000.0, min_value=0.0)
+    }
+    
+    mapped_data = {}
+    for user_key, value in user_inputs.items():
+        if user_key in FEATURE_MAPPING:
+            training_feature = FEATURE_MAPPING[user_key]
+            
+            # Handle special conversions
+            if user_key == 'age':
+                # Convert age to DAYS_BIRTH (negative days from birth)
+                mapped_data[training_feature] = -value * 365
+            elif user_key == 'employment_years':
+                # Convert years to DAYS_EMPLOYED (negative days)
+                mapped_data[training_feature] = -value * 365
+            else:
+                mapped_data[training_feature] = value
 
-    # Build input row aligned to all features
-    new_app = pd.DataFrame([applicant_data]).reindex(columns=X.columns, fill_value=0)
+    # Build input row aligned to all features with proper defaults
+    new_app = pd.DataFrame([mapped_data]).reindex(columns=X.columns, fill_value=0)
 
     preds = {}
     if "Logistic Regression" in selected_models:
@@ -121,7 +157,11 @@ if mode == "Single Applicant":
             st.info("This usually means the scaler was trained on different features. Try using only the CatBoost model.")
 
     if "CatBoost" in selected_models:
-        preds["CatBoost"] = float(cat_model.predict_proba(new_app)[:, 1][0])
+        try:
+            preds["CatBoost"] = float(cat_model.predict_proba(new_app)[:, 1][0])
+        except Exception as e:
+            st.error(f"Error with CatBoost prediction: {str(e)}")
+            st.info("CatBoost model may have been trained on different features.")
 
     st.write("### Prediction Results")
     for model, prob in preds.items():
