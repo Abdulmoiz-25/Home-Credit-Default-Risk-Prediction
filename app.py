@@ -457,8 +457,7 @@ if st.button("🔮 Predict Default Risk", type="primary"):
     }
 
     new_df = pd.DataFrame([new_applicant])
-
- # -------------------------
+# -------------------------
 # 2️⃣ Preprocess input
 # -------------------------
 try:
@@ -480,13 +479,10 @@ X_new_aligned = X_new.reindex(columns=training_features.columns, fill_value=0)
 X_new_aligned = X_new_aligned.fillna(0)
 
 # -------------------------
-# Initialize results
+# 3️⃣ Make predictions
 # -------------------------
 results = {}
 
-# -------------------------
-# 3️⃣ Make predictions
-# -------------------------
 if model_choice in ["Logistic Regression", "Both"]:
     try:
         X_scaled = scaler.transform(X_new_aligned)
@@ -503,7 +499,7 @@ if model_choice in ["CatBoost", "Both"]:
         st.error(f"CatBoost error: {e}")
 
 # -------------------------
-# 4️⃣ Display results (cards + circular gauge)
+# 4️⃣ Display results
 # -------------------------
 def prob_color(prob):
     if prob > 0.7: return "#d9534f"      # High Risk → Red
@@ -517,17 +513,13 @@ def risk_badge(prob):
     elif prob > 0.3: return "Low Risk"
     else: return "Very Low Risk"
 
-# -------------------------
-# Circular gauge with matching colors
-# -------------------------
 def circular_gauge_streamlit(pct, size=160):
     radius = size / 2 - 10
     circumference = 2 * 3.1415 * radius
-    color = prob_color(pct)  # Use same color as cards
+    color = prob_color(pct)
 
     circle_placeholder = st.empty()
     steps = 60
-
     for step in range(steps + 1):
         progress = step / steps * pct
         offset = circumference * (1 - progress)
@@ -543,12 +535,11 @@ def circular_gauge_streamlit(pct, size=160):
         time.sleep(0.02)
 
 # -------------------------
-# Display prediction results
+# Show prediction cards & circular gauge
 # -------------------------
 if results:
     st.markdown("<h3 style='color:white;'>✅ Prediction completed!</h3>", unsafe_allow_html=True)
 
-    # --- Model cards ---
     n = len(results)
     cols = st.columns(n)
     for (model_name, probability), col in zip(results.items(), cols):
@@ -573,8 +564,8 @@ if results:
         """
         col.markdown(card_html, unsafe_allow_html=True)
 
-    # --- Circular gauge + summary ---
     avg_prob = np.mean(list(results.values()))
+    recommendation = ""
     if avg_prob > 0.7:
         recommendation = "⚠️ REJECT LOAN — Very high default risk"
     elif avg_prob > 0.5:
@@ -585,7 +576,6 @@ if results:
         recommendation = "✅ APPROVE LOAN — Low default risk"
 
     rec_color = prob_color(avg_prob)
-
     c1, c2 = st.columns([1,2])
     with c1:
         circular_gauge_streamlit(avg_prob, size=160)
@@ -609,6 +599,7 @@ if results:
         )
 
 st.markdown("---")
+
 
 
 
