@@ -34,7 +34,13 @@ log_model, scaler, cat_model = load_models()
 def load_sample():
     try:
         df = pd.read_csv("sample_train.csv")
-        X = df.drop("TARGET", axis=1)
+        # Handle missing values (numeric columns) - fill with median
+        numeric_cols = df.select_dtypes(include=['number']).columns
+        df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].median())
+        
+        # Apply one-hot encoding exactly like training
+        df_encoded = pd.get_dummies(df, drop_first=True)
+        X = df_encoded.drop('TARGET', axis=1)
         return X
     except FileNotFoundError:
         # Create sample_train.csv with actual Home Credit structure
@@ -88,10 +94,14 @@ def load_sample():
         df = pd.DataFrame(sample_data)
         df.to_csv("sample_train.csv", index=False)
         
+        # Handle missing values (numeric columns)
+        numeric_cols = df.select_dtypes(include=['number']).columns
+        df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].median())
+        
         # Apply one-hot encoding like in training
-        X = df.drop("TARGET", axis=1)
-        X_encoded = pd.get_dummies(X, drop_first=True)
-        return X_encoded
+        df_encoded = pd.get_dummies(df, drop_first=True)
+        X = df_encoded.drop("TARGET", axis=1)
+        return X
 
 X = load_sample()
 
@@ -232,11 +242,15 @@ if mode == "Single Applicant":
             'EXT_SOURCE_3': 0.139376
         }
         
-        # Create DataFrame and apply one-hot encoding
+        # Create DataFrame and handle missing values
         new_app_df = pd.DataFrame([input_data])
+        numeric_cols = new_app_df.select_dtypes(include=['number']).columns
+        new_app_df[numeric_cols] = new_app_df[numeric_cols].fillna(new_app_df[numeric_cols].median())
+        
+        # Apply one-hot encoding exactly like training
         new_app_encoded = pd.get_dummies(new_app_df, drop_first=True)
         
-        # Align with training features
+        # Align with training features (229 features)
         new_app_aligned = new_app_encoded.reindex(columns=X.columns, fill_value=0)
 
         preds = {}
@@ -280,16 +294,24 @@ else:
         else:
             feats = new_df.copy()
 
-        new_df_aligned = feats.reindex(columns=X.columns, fill_value=0)
+        # Handle missing values (numeric columns)
+        numeric_cols = feats.select_dtypes(include=['number']).columns
+        feats[numeric_cols] = feats[numeric_cols].fillna(feats[numeric_cols].median())
+        
+        # Apply one-hot encoding
+        feats_encoded = pd.get_dummies(feats, drop_first=True)
+        
+        # Align with training features
+        new_df_aligned = feats_encoded.reindex(columns=X.columns, fill_value=0)
 
         # Predictions
         preds = {}
         if "Logistic Regression" in selected_models:
-            new_scaled = scaler.transform(new_df_aligned.values)
+            new_scaled = scaler.transform(new_df_aligned)
             preds["Logistic Regression"] = log_model.predict_proba(new_scaled)[:, 1]
 
         if "CatBoost" in selected_models:
-            preds["CatBoost"] = cat_model.predict_proba(new_df_aligned.values)[:, 1]
+            preds["CatBoost"] = cat_model.predict_proba(new_df_aligned)[:, 1]
 
         pred_df = pd.DataFrame(preds, index=new_df.index)
         if has_target:
