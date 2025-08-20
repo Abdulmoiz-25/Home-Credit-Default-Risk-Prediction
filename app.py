@@ -556,7 +556,7 @@ def circular_gauge_streamlit(pct, size=160):
 # Display prediction results
 # -------------------------
 if results:
-    # --- Model cards ---
+    # --- Display model cards ---
     st.markdown("<h3 style='color:white;'>✅ Prediction completed!</h3>", unsafe_allow_html=True)
     n = len(results)
     cols = st.columns(n)
@@ -611,14 +611,17 @@ if results:
         """
         st.markdown(rec_html, unsafe_allow_html=True)
 
-        json_blob = json.dumps({k: float(v) for k,v in results.items()}, indent=2)
-       st.download_button("📥 Download predictions (JSON)", data=json_blob, file_name="prediction_results.json", mime="application/json")
+        json_blob = json.dumps({k: float(v) for k, v in results.items()}, indent=2)
+        st.download_button(
+            "📥 Download predictions (JSON)",
+            data=json_blob,
+            file_name="prediction_results.json",
+            mime="application/json"
+        )
 
-
-    else:
-        st.error("❌ No predictions could be generated. Please check the model files or feature alignment.")
 
 st.markdown("---")
+
 
 
 
