@@ -129,44 +129,66 @@ if mode == "Single Applicant":
         'goods_price': st.number_input("Goods Price", value=90000.0, min_value=0.0)
     }
     
-    mapped_data = {}
-    for user_key, value in user_inputs.items():
-        if user_key in FEATURE_MAPPING:
-            training_feature = FEATURE_MAPPING[user_key]
-            
-            # Handle special conversions
-            if user_key == 'age':
-                # Convert age to DAYS_BIRTH (negative days from birth)
-                mapped_data[training_feature] = -value * 365
-            elif user_key == 'employment_years':
-                # Convert years to DAYS_EMPLOYED (negative days)
-                mapped_data[training_feature] = -value * 365
-            else:
-                mapped_data[training_feature] = value
+    predict_button = st.button("🔮 Predict Default Risk", type="primary")
+    
+    if predict_button:
+        mapped_data = {}
+        for user_key, value in user_inputs.items():
+            if user_key in FEATURE_MAPPING:
+                training_feature = FEATURE_MAPPING[user_key]
+                
+                # Handle special conversions
+                if user_key == 'age':
+                    # Convert age to DAYS_BIRTH (negative days from birth)
+                    mapped_data[training_feature] = -value * 365
+                elif user_key == 'employment_years':
+                    # Convert years to DAYS_EMPLOYED (negative days)
+                    mapped_data[training_feature] = -value * 365
+                else:
+                    mapped_data[training_feature] = value
 
-    # Build input row aligned to all features with proper defaults
-    new_app = pd.DataFrame([mapped_data]).reindex(columns=X.columns, fill_value=0)
+        mapped_data['SK_ID_CURR'] = 1  # Dummy ID for single prediction
+        
+        # Add other commonly expected features with reasonable defaults
+        if 'AMT_REQ_CREDIT_BUREAU_DAY' not in mapped_data:
+            mapped_data['AMT_REQ_CREDIT_BUREAU_DAY'] = 0
+        if 'AMT_REQ_CREDIT_BUREAU_HOUR' not in mapped_data:
+            mapped_data['AMT_REQ_CREDIT_BUREAU_HOUR'] = 0
+        if 'AMT_REQ_CREDIT_BUREAU_MON' not in mapped_data:
+            mapped_data['AMT_REQ_CREDIT_BUREAU_MON'] = 0
+        if 'AMT_REQ_CREDIT_BUREAU_QRT' not in mapped_data:
+            mapped_data['AMT_REQ_CREDIT_BUREAU_QRT'] = 0
+        if 'AMT_REQ_CREDIT_BUREAU_WEEK' not in mapped_data:
+            mapped_data['AMT_REQ_CREDIT_BUREAU_WEEK'] = 0
+        if 'AMT_REQ_CREDIT_BUREAU_YEAR' not in mapped_data:
+            mapped_data['AMT_REQ_CREDIT_BUREAU_YEAR'] = 0
 
-    preds = {}
-    if "Logistic Regression" in selected_models:
-        try:
-            scaled = scaler.transform(new_app)
-            preds["Logistic Regression"] = float(log_model.predict_proba(scaled)[:, 1][0])
-        except Exception as e:
-            st.error(f"Error with Logistic Regression prediction: {str(e)}")
-            st.info("This usually means the scaler was trained on different features. Try using only the CatBoost model.")
+        # Build input row aligned to all features with proper defaults
+        new_app = pd.DataFrame([mapped_data]).reindex(columns=X.columns, fill_value=0)
 
-    if "CatBoost" in selected_models:
-        try:
-            preds["CatBoost"] = float(cat_model.predict_proba(new_app)[:, 1][0])
-        except Exception as e:
-            st.error(f"Error with CatBoost prediction: {str(e)}")
-            st.info("CatBoost model may have been trained on different features.")
+        preds = {}
+        if "Logistic Regression" in selected_models:
+            try:
+                scaled = scaler.transform(new_app.values)
+                preds["Logistic Regression"] = float(log_model.predict_proba(scaled)[:, 1][0])
+            except Exception as e:
+                st.error(f"Error with Logistic Regression prediction: {str(e)}")
+                st.info("This usually means the scaler was trained on different features. Try using only the CatBoost model.")
 
-    st.write("### Prediction Results")
-    for model, prob in preds.items():
-        result = "⚠️ High Risk" if prob >= risk_threshold else "✅ Low Risk"
-        st.write(f"**{model}** → Probability: {prob:.3f} → {result}")
+        if "CatBoost" in selected_models:
+            try:
+                preds["CatBoost"] = float(cat_model.predict_proba(new_app)[:, 1][0])
+            except Exception as e:
+                st.error(f"Error with CatBoost prediction: {str(e)}")
+                st.info("CatBoost model may have been trained on different features.")
+
+        if preds:
+            st.write("### Prediction Results")
+            for model, prob in preds.items():
+                result = "⚠️ High Risk" if prob >= risk_threshold else "✅ Low Risk"
+                st.write(f"**{model}** → Probability: {prob:.3f} → {result}")
+        else:
+            st.warning("No predictions could be generated. Please check the model files and feature alignment.")
 
 # ---------------------------------------------------
 # Batch Prediction
