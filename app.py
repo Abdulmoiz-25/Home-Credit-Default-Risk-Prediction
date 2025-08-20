@@ -196,67 +196,44 @@ if mode == "Single Applicant":
     predict_button = st.button("🔮 Predict Default Risk", type="primary")
     
     if predict_button:
-        input_data = {
-            'SK_ID_CURR': 999999,  # Dummy ID
-            'NAME_CONTRACT_TYPE': name_contract_type,
-            'CODE_GENDER': code_gender,
-            'FLAG_OWN_CAR': flag_own_car,
-            'FLAG_OWN_REALTY': flag_own_realty,
-            'CNT_CHILDREN': cnt_children,
+        new_app_aligned = pd.DataFrame(0, index=[0], columns=X.columns)
+        
+        # Map user inputs to actual training feature names
+        feature_mapping = {
             'AMT_INCOME_TOTAL': amt_income,
             'AMT_CREDIT': amt_credit,
             'AMT_ANNUITY': amt_annuity,
             'AMT_GOODS_PRICE': amt_goods_price,
-            'NAME_TYPE_SUITE': 'Unaccompanied',
-            'NAME_INCOME_TYPE': name_income_type,
-            'NAME_EDUCATION_TYPE': name_education_type,
-            'NAME_FAMILY_STATUS': name_family_status,
-            'NAME_HOUSING_TYPE': 'House / apartment',
-            'REGION_POPULATION_RELATIVE': 0.018801,
+            'CNT_CHILDREN': cnt_children,
             'DAYS_BIRTH': -days_birth * 365,  # Convert to negative days
             'DAYS_EMPLOYED': -days_employed * 365,  # Convert to negative days
-            'DAYS_REGISTRATION': -3648,
-            'DAYS_ID_PUBLISH': -2120,
-            'OWN_CAR_AGE': None,
-            'FLAG_MOBIL': 1,
-            'FLAG_EMP_PHONE': 1,
-            'FLAG_WORK_PHONE': 0,
-            'FLAG_CONT_MOBILE': 1,
-            'FLAG_PHONE': 1,
-            'FLAG_EMAIL': 0,
-            'OCCUPATION_TYPE': 'Laborers',
-            'CNT_FAM_MEMBERS': 1,
-            'REGION_RATING_CLIENT': 2,
-            'REGION_RATING_CLIENT_W_CITY': 2,
-            'WEEKDAY_APPR_PROCESS_START': 'WEDNESDAY',
-            'HOUR_APPR_PROCESS_START': 10,
-            'REG_REGION_NOT_LIVE_REGION': 0,
-            'REG_REGION_NOT_WORK_REGION': 0,
-            'LIVE_REGION_NOT_WORK_REGION': 0,
-            'REG_CITY_NOT_LIVE_CITY': 0,
-            'REG_CITY_NOT_WORK_CITY': 0,
-            'LIVE_CITY_NOT_WORK_CITY': 0,
-            'ORGANIZATION_TYPE': 'Business Entity Type 3',
-            'EXT_SOURCE_1': 0.083037,
-            'EXT_SOURCE_2': 0.262949,
-            'EXT_SOURCE_3': 0.139376
         }
         
-        # Create DataFrame and handle missing values
-        new_app_df = pd.DataFrame([input_data])
-        numeric_cols = new_app_df.select_dtypes(include=['number']).columns
-        new_app_df[numeric_cols] = new_app_df[numeric_cols].fillna(new_app_df[numeric_cols].median())
+        # Fill in the mapped features
+        for feature, value in feature_mapping.items():
+            if feature in new_app_aligned.columns:
+                new_app_aligned[feature] = value
         
-        # Apply one-hot encoding exactly like training
-        new_app_encoded = pd.get_dummies(new_app_df, drop_first=True)
+        # Handle categorical features (one-hot encoded)
+        categorical_mappings = {
+            f'CODE_GENDER_{code_gender}': 1 if code_gender != 'F' else 0,  # F is dropped in drop_first=True
+            f'NAME_CONTRACT_TYPE_{name_contract_type}': 1 if name_contract_type != 'Cash loans' else 0,
+            f'FLAG_OWN_CAR_{flag_own_car}': 1 if flag_own_car != 'N' else 0,
+            f'FLAG_OWN_REALTY_{flag_own_realty}': 1 if flag_own_realty != 'N' else 0,
+            f'NAME_INCOME_TYPE_{name_income_type}': 1 if name_income_type != 'Commercial associate' else 0,
+            f'NAME_EDUCATION_TYPE_{name_education_type}': 1 if name_education_type != 'Academic degree' else 0,
+            f'NAME_FAMILY_STATUS_{name_family_status}': 1 if name_family_status != 'Civil marriage' else 0,
+        }
         
-        # Align with training features (229 features)
-        new_app_aligned = new_app_encoded.reindex(columns=X.columns, fill_value=0)
+        # Fill in categorical features
+        for feature, value in categorical_mappings.items():
+            if feature in new_app_aligned.columns:
+                new_app_aligned[feature] = value
 
         preds = {}
         if "Logistic Regression" in selected_models:
             try:
-                scaled = scaler.transform(new_app_aligned)
+                scaled = scaler.transform(new_app_aligned.values)
                 preds["Logistic Regression"] = float(log_model.predict_proba(scaled)[:, 1][0])
             except Exception as e:
                 st.error(f"Error with Logistic Regression prediction: {str(e)}")
@@ -264,7 +241,7 @@ if mode == "Single Applicant":
 
         if "CatBoost" in selected_models:
             try:
-                preds["CatBoost"] = float(cat_model.predict_proba(new_app_aligned)[:, 1][0])
+                preds["CatBoost"] = float(cat_model.predict_proba(new_app_aligned.values)[:, 1][0])
             except Exception as e:
                 st.error(f"Error with CatBoost prediction: {str(e)}")
                 st.info("Feature alignment issue. Check that CatBoost was trained on the same features.")
