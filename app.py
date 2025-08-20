@@ -65,16 +65,15 @@ def load_training_dataset():
 # Load models
 st.set_page_config(page_title="Loan Default Risk Prediction", layout="wide")
 
-st.set_page_config(page_title="Loan Default Risk Prediction", layout="wide")
-
 @st.cache_data
 def load_training_dataset():
     """Load the actual training dataset from uploaded zip file"""
-    try:
-        # Check if zip file exists in the repo
-        zip_files = [f for f in os.listdir('.') if f.endswith('.zip')]
+    # Always open only ONE expander
+    with st.sidebar.expander("📊 Dataset Status", expanded=False):  
+        try:
+            # Check if zip file exists in the repo
+            zip_files = [f for f in os.listdir('.') if f.endswith('.zip')]
 
-        with st.sidebar.expander("📊 Dataset Status", expanded=False):  # collapsed by default
             if zip_files:
                 zip_file = zip_files[0]  # Use the first zip file found
                 st.markdown(f"📦 Found dataset: **{zip_file}**")
@@ -113,11 +112,10 @@ def load_training_dataset():
                 st.markdown("⚠️ No zip file found — using fallback sample data.")
                 return create_sample_data()
 
-    except Exception as e:
-        with st.sidebar.expander("📊 Dataset Status", expanded=False):  # collapsed by default
+        except Exception as e:
             st.markdown(f"❌ Error loading training dataset: `{e}`")
             st.markdown("⚠️ Using fallback sample data.")
-        return create_sample_data()
+            return create_sample_data()
 
 @st.cache_resource
 def load_models():
@@ -563,6 +561,7 @@ if st.button("Predict Default Risk", type="primary"):
 
 st.markdown("---")
 st.markdown("**Note:** This app uses models trained on Home Credit dataset with business cost optimization.")
+
 
 
 
