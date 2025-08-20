@@ -120,45 +120,30 @@ if mode == "Single Applicant":
     predict_button = st.button("🔮 Predict Default Risk", type="primary")
     
     if predict_button:
-        applicant_data = {
-            'SK_ID_CURR': 100001,  # Dummy ID
-            'AMT_INCOME_TOTAL': amt_income_total,
-            'AMT_CREDIT': amt_credit,
-            'AMT_ANNUITY': amt_annuity,
-            'AMT_GOODS_PRICE': amt_goods_price,
-            'DAYS_BIRTH': -days_birth * 365,  # Convert to negative days
-            'DAYS_EMPLOYED': -days_employed * 365,  # Convert to negative days
-            'CNT_CHILDREN': cnt_children,
-            'CNT_FAM_MEMBERS': cnt_fam_members,
-            'REGION_RATING_CLIENT': region_rating_client,
-            'NAME_EDUCATION_TYPE': name_education_type,
-            # Add other common features with default values
-            'DAYS_REGISTRATION': -4000,
-            'DAYS_ID_PUBLISH': -3000,
-            'FLAG_MOBIL': 1,
-            'FLAG_EMP_PHONE': 1,
-            'FLAG_WORK_PHONE': 0,
-            'FLAG_CONT_MOBILE': 1,
-            'FLAG_PHONE': 0,
-            'FLAG_EMAIL': 0,
-            'REGION_RATING_CLIENT_W_CITY': region_rating_client,
-            'HOUR_APPR_PROCESS_START': 12,
-            'REG_REGION_NOT_LIVE_REGION': 0,
-            'REG_REGION_NOT_WORK_REGION': 0,
-            'LIVE_REGION_NOT_WORK_REGION': 0,
-            'REG_CITY_NOT_LIVE_CITY': 0,
-            'REG_CITY_NOT_WORK_CITY': 0,
-            'LIVE_CITY_NOT_WORK_CITY': 0
-        }
+        new_app_aligned = pd.DataFrame(0, index=[0], columns=X.columns)
         
-        # Create DataFrame and apply one-hot encoding like in training
-        new_app_df = pd.DataFrame([applicant_data])
+        if 'AMT_INCOME_TOTAL' in X.columns:
+            new_app_aligned.loc[0, 'AMT_INCOME_TOTAL'] = amt_income_total
+        if 'AMT_CREDIT' in X.columns:
+            new_app_aligned.loc[0, 'AMT_CREDIT'] = amt_credit
+        if 'AMT_ANNUITY' in X.columns:
+            new_app_aligned.loc[0, 'AMT_ANNUITY'] = amt_annuity
+        if 'AMT_GOODS_PRICE' in X.columns:
+            new_app_aligned.loc[0, 'AMT_GOODS_PRICE'] = amt_goods_price
+        if 'DAYS_BIRTH' in X.columns:
+            new_app_aligned.loc[0, 'DAYS_BIRTH'] = -days_birth * 365
+        if 'DAYS_EMPLOYED' in X.columns:
+            new_app_aligned.loc[0, 'DAYS_EMPLOYED'] = -days_employed * 365
+        if 'CNT_CHILDREN' in X.columns:
+            new_app_aligned.loc[0, 'CNT_CHILDREN'] = cnt_children
+        if 'CNT_FAM_MEMBERS' in X.columns:
+            new_app_aligned.loc[0, 'CNT_FAM_MEMBERS'] = cnt_fam_members
+        if 'REGION_RATING_CLIENT' in X.columns:
+            new_app_aligned.loc[0, 'REGION_RATING_CLIENT'] = region_rating_client
         
-        # Apply one-hot encoding for categorical variables (matching training process)
-        new_app_encoded = pd.get_dummies(new_app_df, drop_first=True)
-        
-        # Align with training features - reindex to match X.columns exactly
-        new_app_aligned = new_app_encoded.reindex(columns=X.columns, fill_value=0)
+        education_col = f'NAME_EDUCATION_TYPE_{name_education_type}'
+        if education_col in X.columns:
+            new_app_aligned.loc[0, education_col] = 1
 
         preds = {}
         if "Logistic Regression" in selected_models:
