@@ -15,52 +15,52 @@ def load_training_dataset():
     try:
         # Check if zip file exists in the repo
         zip_files = [f for f in os.listdir('.') if f.endswith('.zip')]
-        
-        if zip_files:
-            zip_file = zip_files[0]  # Use the first zip file found
-            st.info(f"Found dataset: {zip_file}")
-            
-            # Extract the zip file
-            with zipfile.ZipFile(zip_file, 'r') as zip_ref:
-                zip_ref.extractall('.')
-            
-            # Look for CSV files
-            csv_files = [f for f in os.listdir('.') if f.endswith('.csv') and 'train' in f.lower()]
-            
-            if csv_files:
-                csv_file = csv_files[0]  # Use the first training CSV found
-                st.info(f"Loading training data from: {csv_file}")
-                
-                # Load the actual training dataset
-                df = pd.read_csv(csv_file)
-                
-                # Apply exact same preprocessing as Colab training
-                # 1. Handle missing values (numeric columns) - fill with median
-                numeric_cols = df.select_dtypes(include=['number']).columns
-                df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].median())
-                
-                # 2. Encode categorical variables (exactly like training)
-                df_encoded = pd.get_dummies(df, drop_first=True)
-                
-                # 3. Split features and target
-                if 'TARGET' in df_encoded.columns:
-                    X = df_encoded.drop('TARGET', axis=1)
+
+        with st.sidebar.expander("📊 Dataset Status", expanded=True):
+            if zip_files:
+                zip_file = zip_files[0]  # Use the first zip file found
+                st.markdown(f"📦 Found dataset: **{zip_file}**")
+
+                # Extract the zip file
+                with zipfile.ZipFile(zip_file, 'r') as zip_ref:
+                    zip_ref.extractall('.')
+
+                # Look for CSV files
+                csv_files = [f for f in os.listdir('.') if f.endswith('.csv') and 'train' in f.lower()]
+
+                if csv_files:
+                    csv_file = csv_files[0]  # Use the first training CSV found
+                    st.markdown(f"📂 Using training data: **{csv_file}**")
+
+                    # Load the actual training dataset
+                    df = pd.read_csv(csv_file)
+
+                    # Apply exact same preprocessing as Colab training
+                    numeric_cols = df.select_dtypes(include=['number']).columns
+                    df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].median())
+
+                    df_encoded = pd.get_dummies(df, drop_first=True)
+
+                    if 'TARGET' in df_encoded.columns:
+                        X = df_encoded.drop('TARGET', axis=1)
+                    else:
+                        X = df_encoded
+
+                    st.markdown(f"✅ Training dataset loaded ({X.shape[0]} rows, {X.shape[1]} features)")
+                    return X
                 else:
-                    X = df_encoded
-                
-                st.success(f"✅ Loaded training dataset with {X.shape[0]} rows and {X.shape[1]} features")
-                return X
+                    st.markdown("⚠️ No training CSV file found in zip — using fallback sample data.")
+                    return create_sample_data()
             else:
-                st.warning("No training CSV file found in zip. Using fallback sample data.")
+                st.markdown("⚠️ No zip file found — using fallback sample data.")
                 return create_sample_data()
-        else:
-            st.warning("No zip file found. Using fallback sample data.")
-            return create_sample_data()
-            
+
     except Exception as e:
-        st.error(f"Error loading training dataset: {e}")
-        st.info("Using fallback sample data.")
+        with st.sidebar.expander("📊 Dataset Status", expanded=True):
+            st.markdown(f"❌ Error loading training dataset: `{e}`")
+            st.markdown("⚠️ Using fallback sample data.")
         return create_sample_data()
+
 
 # Load models
 @st.cache_resource
@@ -484,3 +484,4 @@ if st.button("🔮 Predict Default Risk", type="primary"):
 
 st.markdown("---")
 st.markdown("**Note:** This app uses models trained on Home Credit dataset with business cost optimization.")
+
