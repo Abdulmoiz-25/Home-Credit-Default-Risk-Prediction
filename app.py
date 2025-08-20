@@ -457,151 +457,144 @@ if st.button("🔮 Predict Default Risk", type="primary"):
     }
 
     new_df = pd.DataFrame([new_applicant])
-# -------------------------
-# 2️⃣ Preprocess input
-# -------------------------
-try:
-    training_medians = training_features.median()
-except:
-    training_medians = new_df.select_dtypes(include=['number']).median()
 
-for col in new_df.select_dtypes(include=['number']).columns:
-    new_df[col] = new_df[col].fillna(training_medians.get(col, 0))
-
-new_df_encoded = pd.get_dummies(new_df, drop_first=True)
-
-if 'TARGET' in new_df_encoded.columns:
-    X_new = new_df_encoded.drop('TARGET', axis=1)
-else:
-    X_new = new_df_encoded
-
-X_new_aligned = X_new.reindex(columns=training_features.columns, fill_value=0)
-X_new_aligned = X_new_aligned.fillna(0)
-
-# -------------------------
-# 3️⃣ Make predictions
-# -------------------------
-results = {}
-
-if model_choice in ["Logistic Regression", "Both"]:
+    # -------------------------
+    # 2️⃣ Preprocess input
+    # -------------------------
     try:
-        X_scaled = scaler.transform(X_new_aligned)
-        lr_prob = log_model.predict_proba(X_scaled)[0, 1]
-        results["Logistic Regression"] = lr_prob
-    except Exception as e:
-        st.error(f"Logistic Regression error: {e}")
+        training_medians = training_features.median()
+    except:
+        training_medians = new_df.select_dtypes(include=['number']).median()
 
-if model_choice in ["CatBoost", "Both"]:
-    try:
-        cb_prob = cat_model.predict_proba(X_new_aligned)[0, 1]
-        results["CatBoost"] = cb_prob
-    except Exception as e:
-        st.error(f"CatBoost error: {e}")
+    for col in new_df.select_dtypes(include=['number']).columns:
+        new_df[col] = new_df[col].fillna(training_medians.get(col, 0))
 
-# -------------------------
-# 4️⃣ Display results
-# -------------------------
-def prob_color(prob):
-    if prob > 0.7: return "#d9534f"      # High Risk → Red
-    elif prob > 0.5: return "#f39c12"    # Moderate Risk → Orange
-    elif prob > 0.3: return "#3498db"    # Low Risk → Blue
-    else: return "#2ecc71"               # Very Low Risk → Green
+    new_df_encoded = pd.get_dummies(new_df, drop_first=True)
 
-def risk_badge(prob):
-    if prob > 0.7: return "High Risk"
-    elif prob > 0.5: return "Moderate Risk"
-    elif prob > 0.3: return "Low Risk"
-    else: return "Very Low Risk"
-
-def circular_gauge_streamlit(pct, size=160):
-    radius = size / 2 - 10
-    circumference = 2 * 3.1415 * radius
-    color = prob_color(pct)
-
-    circle_placeholder = st.empty()
-    steps = 60
-    for step in range(steps + 1):
-        progress = step / steps * pct
-        offset = circumference * (1 - progress)
-        svg = f"""
-        <svg width="{size}" height="{size}" viewBox="0 0 {size} {size}">
-          <circle cx="{size/2}" cy="{size/2}" r="{radius}" stroke="#2d3748" stroke-width="10" fill="none"/>
-          <circle cx="{size/2}" cy="{size/2}" r="{radius}" stroke="{color}" stroke-width="10" fill="none"
-                  stroke-dasharray="{circumference}" stroke-dashoffset="{offset}" transform="rotate(-90 {size/2} {size/2})"/>
-          <text x="50%" y="50%" text-anchor="middle" dy="7" fill="white" font-size="18">{progress*100:.1f}%</text>
-        </svg>
-        """
-        circle_placeholder.markdown(svg, unsafe_allow_html=True)
-        time.sleep(0.02)
-
-# -------------------------
-# Show prediction cards & circular gauge
-# -------------------------
-if results:
-    st.markdown("<h3 style='color:white;'>✅ Prediction completed!</h3>", unsafe_allow_html=True)
-
-    n = len(results)
-    cols = st.columns(n)
-    for (model_name, probability), col in zip(results.items(), cols):
-        pct = float(probability)
-        color = prob_color(pct)
-        badge = risk_badge(pct)
-        pct_display = f"{pct:.1%}"
-        bar_width = int(pct * 100)
-        gradient_css = f"background: linear-gradient(90deg, {color}, rgba(255,255,255,0.06));"
-        card_html = f"""
-        <div style='border-radius:12px;padding:18px;background:#1f2937;margin-bottom:18px;box-shadow:0 6px 18px rgba(8,12,20,0.6);'>
-          <div style='font-size:16px;color:#cbd5e1;margin-bottom:6px;'>{model_name} Prediction</div>
-          <div style='font-size:44px;font-weight:800;margin:4px 0 8px 0;color:{color};'>{pct_display}</div>
-          <div style="margin-bottom:8px;">
-            <span style="background:{color};color:#fff;padding:6px 10px;border-radius:999px;font-size:13px;">{badge}</span>
-            <span style="margin-left:10px;font-size:13px;color:#9aa7b8;">Probability of default</span>
-          </div>
-          <div style="width:100%;height:10px;background: rgba(255,255,255,0.06);border-radius:999px;margin-top:12px;">
-            <div style="height:100%;border-radius:999px;{gradient_css} width:{bar_width}%;"></div>
-          </div>
-        </div>
-        """
-        col.markdown(card_html, unsafe_allow_html=True)
-
-    avg_prob = np.mean(list(results.values()))
-    recommendation = ""
-    if avg_prob > 0.7:
-        recommendation = "⚠️ REJECT LOAN — Very high default risk"
-    elif avg_prob > 0.5:
-        recommendation = "⚠️ REVIEW CAREFULLY — Moderate to high default risk"
-    elif avg_prob > 0.3:
-        recommendation = "ℹ️ APPROVE WITH CONDITIONS — Low to moderate default risk"
+    if 'TARGET' in new_df_encoded.columns:
+        X_new = new_df_encoded.drop('TARGET', axis=1)
     else:
-        recommendation = "✅ APPROVE LOAN — Low default risk"
+        X_new = new_df_encoded
 
-    rec_color = prob_color(avg_prob)
-    c1, c2 = st.columns([1,2])
-    with c1:
-        circular_gauge_streamlit(avg_prob, size=160)
-        st.markdown(f"<div style='text-align:center;color:#b9c6d4;'>Average probability</div>", unsafe_allow_html=True)
+    X_new_aligned = X_new.reindex(columns=training_features.columns, fill_value=0)
+    X_new_aligned = X_new_aligned.fillna(0)
 
-    with c2:
-        rec_html = f"""
-        <div style='border-radius:10px;padding:14px;margin-top:18px;background:#111827;box-shadow:0 8px 20px rgba(0,0,0,0.45);'>
-          <div style='font-size:20px;font-weight:800;color:{rec_color};margin-bottom:6px;'>{recommendation}</div>
-          <div style='color:#94a3b8;font-size:13px;'>Average probability across selected models: <strong style='color:white;'>{avg_prob:.1%}</strong></div>
-        </div>
-        """
-        st.markdown(rec_html, unsafe_allow_html=True)
+    # -------------------------
+    # 3️⃣ Make predictions
+    # -------------------------
+    results = {}
 
-        json_blob = json.dumps({k: float(v) for k, v in results.items()}, indent=2)
-        st.download_button(
-            "📥 Download predictions (JSON)",
-            data=json_blob,
-            file_name="prediction_results.json",
-            mime="application/json"
-        )
+    if model_choice in ["Logistic Regression", "Both"]:
+        try:
+            X_scaled = scaler.transform(X_new_aligned)
+            lr_prob = log_model.predict_proba(X_scaled)[0, 1]
+            results["Logistic Regression"] = lr_prob
+        except Exception as e:
+            st.error(f"Logistic Regression error: {e}")
+
+    if model_choice in ["CatBoost", "Both"]:
+        try:
+            cb_prob = cat_model.predict_proba(X_new_aligned)[0, 1]
+            results["CatBoost"] = cb_prob
+        except Exception as e:
+            st.error(f"CatBoost error: {e}")
+
+    # -------------------------
+    # 4️⃣ Display results
+    # -------------------------
+    def prob_color(prob):
+        if prob > 0.7: return "#d9534f"      # High Risk → Red
+        elif prob > 0.5: return "#f39c12"    # Moderate Risk → Orange
+        elif prob > 0.3: return "#3498db"    # Low Risk → Blue
+        else: return "#2ecc71"               # Very Low Risk → Green
+
+    def risk_badge(prob):
+        if prob > 0.7: return "High Risk"
+        elif prob > 0.5: return "Moderate Risk"
+        elif prob > 0.3: return "Low Risk"
+        else: return "Very Low Risk"
+
+    def circular_gauge_streamlit(pct, size=160):
+        radius = size / 2 - 10
+        circumference = 2 * 3.1415 * radius
+        color = prob_color(pct)
+
+        circle_placeholder = st.empty()
+        steps = 60
+        for step in range(steps + 1):
+            progress = step / steps * pct
+            offset = circumference * (1 - progress)
+            svg = f"""
+            <svg width="{size}" height="{size}" viewBox="0 0 {size} {size}">
+              <circle cx="{size/2}" cy="{size/2}" r="{radius}" stroke="#2d3748" stroke-width="10" fill="none"/>
+              <circle cx="{size/2}" cy="{size/2}" r="{radius}" stroke="{color}" stroke-width="10" fill="none"
+                      stroke-dasharray="{circumference}" stroke-dashoffset="{offset}" transform="rotate(-90 {size/2} {size/2})"/>
+              <text x="50%" y="50%" text-anchor="middle" dy="7" fill="white" font-size="18">{progress*100:.1f}%</text>
+            </svg>
+            """
+            circle_placeholder.markdown(svg, unsafe_allow_html=True)
+            time.sleep(0.02)
+
+    # --- Show prediction cards & circular gauge ---
+    if results:
+        st.markdown("<h3 style='color:white;'>✅ Prediction completed!</h3>", unsafe_allow_html=True)
+
+        n = len(results)
+        cols = st.columns(n)
+        for (model_name, probability), col in zip(results.items(), cols):
+            pct = float(probability)
+            color = prob_color(pct)
+            badge = risk_badge(pct)
+            pct_display = f"{pct:.1%}"
+            bar_width = int(pct * 100)
+            gradient_css = f"background: linear-gradient(90deg, {color}, rgba(255,255,255,0.06));"
+            card_html = f"""
+            <div style='border-radius:12px;padding:18px;background:#1f2937;margin-bottom:18px;box-shadow:0 6px 18px rgba(8,12,20,0.6);'>
+              <div style='font-size:16px;color:#cbd5e1;margin-bottom:6px;'>{model_name} Prediction</div>
+              <div style='font-size:44px;font-weight:800;margin:4px 0 8px 0;color:{color};'>{pct_display}</div>
+              <div style="margin-bottom:8px;">
+                <span style="background:{color};color:#fff;padding:6px 10px;border-radius:999px;font-size:13px;">{badge}</span>
+                <span style="margin-left:10px;font-size:13px;color:#9aa7b8;">Probability of default</span>
+              </div>
+              <div style="width:100%;height:10px;background: rgba(255,255,255,0.06);border-radius:999px;margin-top:12px;">
+                <div style="height:100%;border-radius:999px;{gradient_css} width:{bar_width}%;"></div>
+              </div>
+            </div>
+            """
+            col.markdown(card_html, unsafe_allow_html=True)
+
+        avg_prob = np.mean(list(results.values()))
+        recommendation = ""
+        if avg_prob > 0.7:
+            recommendation = "⚠️ REJECT LOAN — Very high default risk"
+        elif avg_prob > 0.5:
+            recommendation = "⚠️ REVIEW CAREFULLY — Moderate to high default risk"
+        elif avg_prob > 0.3:
+            recommendation = "ℹ️ APPROVE WITH CONDITIONS — Low to moderate default risk"
+        else:
+            recommendation = "✅ APPROVE LOAN — Low default risk"
+
+        rec_color = prob_color(avg_prob)
+        c1, c2 = st.columns([1,2])
+        with c1:
+            circular_gauge_streamlit(avg_prob, size=160)
+            st.markdown(f"<div style='text-align:center;color:#b9c6d4;'>Average probability</div>", unsafe_allow_html=True)
+
+        with c2:
+            rec_html = f"""
+            <div style='border-radius:10px;padding:14px;margin-top:18px;background:#111827;box-shadow:0 8px 20px rgba(0,0,0,0.45);'>
+              <div style='font-size:20px;font-weight:800;color:{rec_color};margin-bottom:6px;'>{recommendation}</div>
+              <div style='color:#94a3b8;font-size:13px;'>Average probability across selected models: <strong style='color:white;'>{avg_prob:.1%}</strong></div>
+            </div>
+            """
+            st.markdown(rec_html, unsafe_allow_html=True)
+
+            json_blob = json.dumps({k: float(v) for k, v in results.items()}, indent=2)
+            st.download_button(
+                "📥 Download predictions (JSON)",
+                data=json_blob,
+                file_name="prediction_results.json",
+                mime="application/json"
+            )
 
 st.markdown("---")
-
-
-
-
-
-
