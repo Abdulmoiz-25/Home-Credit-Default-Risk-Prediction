@@ -6,6 +6,7 @@ from catboost import CatBoostClassifier
 from sklearn.preprocessing import StandardScaler
 import zipfile
 import os
+import json
 
 st.set_page_config(page_title="Loan Default Risk Prediction", layout="wide")
 
@@ -590,3 +591,4 @@ if st.button("🔮 Predict Default Risk", type="primary"):
 
 st.markdown("---")
 st.markdown("**Note:** This app uses models trained on Home Credit dataset with business cost optimization.")
+
