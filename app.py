@@ -113,14 +113,15 @@ if mode == "Single Applicant":
 
     preds = {}
     if "Logistic Regression" in selected_models:
-        if new_app.shape[1] == len(X.columns):
-            scaled = scaler.transform(new_app.values)
+        try:
+            scaled = scaler.transform(new_app)
             preds["Logistic Regression"] = float(log_model.predict_proba(scaled)[:, 1][0])
-        else:
-            st.error(f"Feature mismatch: Expected {len(X.columns)} features, got {new_app.shape[1]}")
+        except Exception as e:
+            st.error(f"Error with Logistic Regression prediction: {str(e)}")
+            st.info("This usually means the scaler was trained on different features. Try using only the CatBoost model.")
 
     if "CatBoost" in selected_models:
-        preds["CatBoost"] = float(cat_model.predict_proba(new_app)[:, 1])
+        preds["CatBoost"] = float(cat_model.predict_proba(new_app)[:, 1][0])
 
     st.write("### Prediction Results")
     for model, prob in preds.items():
