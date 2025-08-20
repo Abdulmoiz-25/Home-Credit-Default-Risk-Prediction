@@ -480,26 +480,29 @@ if st.button("🔮 Predict Default Risk", type="primary"):
     X_new_aligned = X_new_aligned.fillna(0)
 
 
-    # Initialize results
+ # -------------------------
+# Initialize results
+# -------------------------
 results = {}
 
-    # -------------------------
-    # 3️⃣ Make predictions
-    # -------------------------
-    if model_choice in ["Logistic Regression", "Both"]:
-        try:
-            X_scaled = scaler.transform(X_new_aligned)
-            lr_prob = log_model.predict_proba(X_scaled)[0, 1]
-            results["Logistic Regression"] = lr_prob
-        except Exception as e:
-            st.error(f"Logistic Regression error: {e}")
+# -------------------------
+# 3️⃣ Make predictions
+# -------------------------
+if model_choice in ["Logistic Regression", "Both"]:
+    try:
+        X_scaled = scaler.transform(X_new_aligned)
+        lr_prob = log_model.predict_proba(X_scaled)[0, 1]
+        results["Logistic Regression"] = lr_prob
+    except Exception as e:
+        st.error(f"Logistic Regression error: {e}")
 
-    if model_choice in ["CatBoost", "Both"]:
-        try:
-            cb_prob = cat_model.predict_proba(X_new_aligned)[0, 1]
-            results["CatBoost"] = cb_prob
-        except Exception as e:
-            st.error(f"CatBoost error: {e}")
+if model_choice in ["CatBoost", "Both"]:
+    try:
+        cb_prob = cat_model.predict_proba(X_new_aligned)[0, 1]
+        results["CatBoost"] = cb_prob
+    except Exception as e:
+        st.error(f"CatBoost error: {e}")
+
 
 # -------------------------
 # 4️⃣ Display results (cards + circular gauge)
@@ -608,6 +611,7 @@ if results:
         )
 
 st.markdown("---")
+
 
 
 
