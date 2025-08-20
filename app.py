@@ -48,11 +48,15 @@ def load_training_dataset():
                 
                 return X
             else:
+                st.warning("No training CSV file found in zip. Using fallback sample data.")
                 return create_sample_data()
         else:
+            st.warning("No zip file found. Using fallback sample data.")
             return create_sample_data()
             
     except Exception as e:
+        st.error(f"Error loading training dataset: {e}")
+        st.info("Using fallback sample data.")
         return create_sample_data()
 
 # Load models
