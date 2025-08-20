@@ -479,10 +479,13 @@ if st.button("🔮 Predict Default Risk", type="primary"):
     X_new_aligned = X_new.reindex(columns=training_features.columns, fill_value=0)
     X_new_aligned = X_new_aligned.fillna(0)
 
+
+    # Initialize results
+results = {}
+
     # -------------------------
     # 3️⃣ Make predictions
     # -------------------------
-    results = {}
     if model_choice in ["Logistic Regression", "Both"]:
         try:
             X_scaled = scaler.transform(X_new_aligned)
@@ -605,6 +608,7 @@ if results:
         )
 
 st.markdown("---")
+
 
 
 
