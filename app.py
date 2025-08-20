@@ -512,19 +512,47 @@ if st.button("🔮 Predict Default Risk", type="primary"):
         elif prob > 0.3: return "Low Risk"
         else: return "Very Low Risk"
 
-    def circular_gauge_svg(pct, size=120):
-        radius = size / 2 - 10
-        circumference = 2 * 3.1415 * radius
-        offset = circumference * (1 - pct / 100)
-        svg = f"""
-        <svg width="{size}" height="{size}" viewBox="0 0 {size} {size}">
-          <circle cx="{size/2}" cy="{size/2}" r="{radius}" stroke="#2d3748" stroke-width="10" fill="none"/>
-          <circle cx="{size/2}" cy="{size/2}" r="{radius}" stroke="#00e676" stroke-width="10" fill="none"
-                  stroke-dasharray="{circumference}" stroke-dashoffset="{offset}" transform="rotate(-90 {size/2} {size/2})"/>
-          <text x="50%" y="50%" text-anchor="middle" dy="7" fill="white" font-size="18">{pct:.1f}%</text>
-        </svg>
-        """
-        return svg
+def circular_gauge_svg(pct, size=120):
+    radius = size / 2 - 10
+    circumference = 2 * 3.1415 * radius
+    offset = circumference  # start from 0%
+    target_offset = circumference * (1 - pct / 100)
+    
+    # Determine color based on probability
+    if pct/100 > 0.7: color = "#d9534f"
+    elif pct/100 > 0.5: color = "#f39c12"
+    elif pct/100 > 0.3: color = "#3498db"
+    else: color = "#2ecc71"
+
+    svg = f"""
+    <svg width="{size}" height="{size}" viewBox="0 0 {size} {size}">
+      <circle cx="{size/2}" cy="{size/2}" r="{radius}" stroke="#2d3748" stroke-width="10" fill="none"/>
+      <circle cx="{size/2}" cy="{size/2}" r="{radius}" stroke="{color}" stroke-width="10" fill="none"
+              stroke-dasharray="{circumference}" stroke-dashoffset="{offset}" transform="rotate(-90 {size/2} {size/2})">
+        <animate attributeName="stroke-dashoffset" from="{circumference}" to="{target_offset}" dur="1s" fill="freeze" />
+      </circle>
+      <text x="50%" y="50%" text-anchor="middle" dy="7" fill="white" font-size="18">
+        <tspan>
+          <animate attributeName="textLength" from="0" to="{pct:.1f}" dur="1s" fill="freeze" />
+        </tspan>
+      </text>
+      <script type="application/ecmascript"><![CDATA[
+        var text = document.currentScript.parentNode.querySelector('text');
+        var pct = {pct:.1f};
+        var i = 0;
+        var interval = setInterval(function(){{
+            if(i <= pct){{
+                text.textContent = i.toFixed(1) + '%';
+                i += pct/20;
+            }} else {{
+                clearInterval(interval);
+            }}
+        }}, 50);
+      ]]></script>
+    </svg>
+    """
+    return svg
+
 
     if results:
         # --- Display model cards ---
@@ -590,4 +618,5 @@ if st.button("🔮 Predict Default Risk", type="primary"):
         st.error("❌ No predictions could be generated. Please check the model files or feature alignment.")
 
 st.markdown("---")
+
 
