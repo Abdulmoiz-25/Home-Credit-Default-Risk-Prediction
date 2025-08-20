@@ -37,93 +37,61 @@ def load_sample():
         X = df.drop("TARGET", axis=1)
         return X
     except FileNotFoundError:
-        # The models expect features like AMT_ANNUITY, AMT_CREDIT, etc.
-        feature_names = [
-            'SK_ID_CURR', 'AMT_INCOME_TOTAL', 'AMT_CREDIT', 'AMT_ANNUITY', 'AMT_GOODS_PRICE',
-            'NAME_CONTRACT_TYPE_Cash loans', 'NAME_CONTRACT_TYPE_Revolving loans',
-            'CODE_GENDER_F', 'CODE_GENDER_M', 'FLAG_OWN_CAR_N', 'FLAG_OWN_CAR_Y',
-            'FLAG_OWN_REALTY_N', 'FLAG_OWN_REALTY_Y', 'CNT_CHILDREN', 'AMT_REQ_CREDIT_BUREAU_HOUR',
-            'AMT_REQ_CREDIT_BUREAU_DAY', 'AMT_REQ_CREDIT_BUREAU_WEEK', 'AMT_REQ_CREDIT_BUREAU_MON',
-            'AMT_REQ_CREDIT_BUREAU_QRT', 'AMT_REQ_CREDIT_BUREAU_YEAR', 'NAME_TYPE_SUITE_Children',
-            'NAME_TYPE_SUITE_Family', 'NAME_TYPE_SUITE_Group of people', 'NAME_TYPE_SUITE_Other_A',
-            'NAME_TYPE_SUITE_Other_B', 'NAME_TYPE_SUITE_Spouse, partner', 'NAME_TYPE_SUITE_Unaccompanied',
-            'NAME_INCOME_TYPE_Businessman', 'NAME_INCOME_TYPE_Commercial associate', 
-            'NAME_INCOME_TYPE_Maternity leave', 'NAME_INCOME_TYPE_Pensioner', 'NAME_INCOME_TYPE_State servant',
-            'NAME_INCOME_TYPE_Student', 'NAME_INCOME_TYPE_Unemployed', 'NAME_INCOME_TYPE_Working',
-            'NAME_EDUCATION_TYPE_Academic degree', 'NAME_EDUCATION_TYPE_Higher education',
-            'NAME_EDUCATION_TYPE_Incomplete higher', 'NAME_EDUCATION_TYPE_Lower secondary',
-            'NAME_EDUCATION_TYPE_Secondary / secondary special', 'NAME_FAMILY_STATUS_Civil marriage',
-            'NAME_FAMILY_STATUS_Married', 'NAME_FAMILY_STATUS_Separated', 'NAME_FAMILY_STATUS_Single / not married',
-            'NAME_FAMILY_STATUS_Unknown', 'NAME_FAMILY_STATUS_Widow', 'NAME_HOUSING_TYPE_Co-op apartment',
-            'NAME_HOUSING_TYPE_House / apartment', 'NAME_HOUSING_TYPE_Municipal apartment',
-            'NAME_HOUSING_TYPE_Office apartment', 'NAME_HOUSING_TYPE_Rented apartment',
-            'NAME_HOUSING_TYPE_With parents', 'REGION_POPULATION_RELATIVE', 'DAYS_BIRTH',
-            'DAYS_EMPLOYED', 'DAYS_REGISTRATION', 'DAYS_ID_PUBLISH', 'OWN_CAR_AGE',
-            'FLAG_MOBIL', 'FLAG_EMP_PHONE', 'FLAG_WORK_PHONE', 'FLAG_CONT_MOBILE',
-            'FLAG_PHONE', 'FLAG_EMAIL', 'OCCUPATION_TYPE_Accountants', 'OCCUPATION_TYPE_Cleaning staff',
-            'OCCUPATION_TYPE_Cooking staff', 'OCCUPATION_TYPE_Core staff', 'OCCUPATION_TYPE_Drivers',
-            'OCCUPATION_TYPE_HR staff', 'OCCUPATION_TYPE_High skill tech staff', 'OCCUPATION_TYPE_IT staff',
-            'OCCUPATION_TYPE_Laborers', 'OCCUPATION_TYPE_Low-skill Laborers', 'OCCUPATION_TYPE_Managers',
-            'OCCUPATION_TYPE_Medicine staff', 'OCCUPATION_TYPE_Private service staff',
-            'OCCUPATION_TYPE_Realty agents', 'OCCUPATION_TYPE_Sales staff', 'OCCUPATION_TYPE_Secretaries',
-            'OCCUPATION_TYPE_Security staff', 'OCCUPATION_TYPE_Waiters/barmen staff', 'CNT_FAM_MEMBERS',
-            'REGION_RATING_CLIENT', 'REGION_RATING_CLIENT_W_CITY', 'WEEKDAY_APPR_PROCESS_START_FRIDAY',
-            'WEEKDAY_APPR_PROCESS_START_MONDAY', 'WEEKDAY_APPR_PROCESS_START_SATURDAY',
-            'WEEKDAY_APPR_PROCESS_START_SUNDAY', 'WEEKDAY_APPR_PROCESS_START_THURSDAY',
-            'WEEKDAY_APPR_PROCESS_START_TUESDAY', 'WEEKDAY_APPR_PROCESS_START_WEDNESDAY',
-            'HOUR_APPR_PROCESS_START', 'REG_REGION_NOT_LIVE_REGION', 'REG_REGION_NOT_WORK_REGION',
-            'LIVE_REGION_NOT_WORK_REGION', 'REG_CITY_NOT_LIVE_CITY', 'REG_CITY_NOT_WORK_CITY',
-            'LIVE_CITY_NOT_WORK_CITY', 'ORGANIZATION_TYPE_Advertising', 'ORGANIZATION_TYPE_Agriculture',
-            'ORGANIZATION_TYPE_Bank', 'ORGANIZATION_TYPE_Business Entity Type 1',
-            'ORGANIZATION_TYPE_Business Entity Type 2', 'ORGANIZATION_TYPE_Business Entity Type 3',
-            'ORGANIZATION_TYPE_Cleaning', 'ORGANIZATION_TYPE_Construction', 'ORGANIZATION_TYPE_Culture',
-            'ORGANIZATION_TYPE_Electricity', 'ORGANIZATION_TYPE_Emergency', 'ORGANIZATION_TYPE_Government',
-            'ORGANIZATION_TYPE_Hotel', 'ORGANIZATION_TYPE_Housing', 'ORGANIZATION_TYPE_Industry: type 1',
-            'ORGANIZATION_TYPE_Industry: type 10', 'ORGANIZATION_TYPE_Industry: type 11',
-            'ORGANIZATION_TYPE_Industry: type 12', 'ORGANIZATION_TYPE_Industry: type 13',
-            'ORGANIZATION_TYPE_Industry: type 2', 'ORGANIZATION_TYPE_Industry: type 3',
-            'ORGANIZATION_TYPE_Industry: type 4', 'ORGANIZATION_TYPE_Industry: type 5',
-            'ORGANIZATION_TYPE_Industry: type 6', 'ORGANIZATION_TYPE_Industry: type 7',
-            'ORGANIZATION_TYPE_Industry: type 8', 'ORGANIZATION_TYPE_Industry: type 9',
-            'ORGANIZATION_TYPE_Insurance', 'ORGANIZATION_TYPE_Kindergarten', 'ORGANIZATION_TYPE_Legal Services',
-            'ORGANIZATION_TYPE_Medicine', 'ORGANIZATION_TYPE_Military', 'ORGANIZATION_TYPE_Mobile',
-            'ORGANIZATION_TYPE_Other', 'ORGANIZATION_TYPE_Police', 'ORGANIZATION_TYPE_Postal',
-            'ORGANIZATION_TYPE_Realtor', 'ORGANIZATION_TYPE_Religion', 'ORGANIZATION_TYPE_Restaurant',
-            'ORGANIZATION_TYPE_School', 'ORGANIZATION_TYPE_Security', 'ORGANIZATION_TYPE_Security Ministries',
-            'ORGANIZATION_TYPE_Self-employed', 'ORGANIZATION_TYPE_Services', 'ORGANIZATION_TYPE_Telecom',
-            'ORGANIZATION_TYPE_Trade: type 1', 'ORGANIZATION_TYPE_Trade: type 2', 'ORGANIZATION_TYPE_Trade: type 3',
-            'ORGANIZATION_TYPE_Trade: type 4', 'ORGANIZATION_TYPE_Trade: type 5', 'ORGANIZATION_TYPE_Trade: type 6',
-            'ORGANIZATION_TYPE_Trade: type 7', 'ORGANIZATION_TYPE_Transport: type 1',
-            'ORGANIZATION_TYPE_Transport: type 2', 'ORGANIZATION_TYPE_Transport: type 3',
-            'ORGANIZATION_TYPE_Transport: type 4', 'ORGANIZATION_TYPE_University', 'ORGANIZATION_TYPE_XNA',
-            'EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3', 'APARTMENTS_AVG', 'BASEMENTAREA_AVG',
-            'YEARS_BEGINEXPLUATATION_AVG', 'YEARS_BUILD_AVG', 'COMMONAREA_AVG', 'ELEVATORS_AVG',
-            'ENTRANCES_AVG', 'FLOORSMAX_AVG', 'FLOORSMIN_AVG', 'LANDAREA_AVG', 'LIVINGAPARTMENTS_AVG',
-            'LIVINGAREA_AVG', 'NONLIVINGAPARTMENTS_AVG', 'NONLIVINGAREA_AVG', 'APARTMENTS_MODE',
-            'BASEMENTAREA_MODE', 'YEARS_BEGINEXPLUATATION_MODE', 'YEARS_BUILD_MODE', 'COMMONAREA_MODE',
-            'ELEVATORS_MODE', 'ENTRANCES_MODE', 'FLOORSMAX_MODE', 'FLOORSMIN_MODE', 'LANDAREA_MODE',
-            'LIVINGAPARTMENTS_MODE', 'LIVINGAREA_MODE', 'NONLIVINGAPARTMENTS_MODE', 'NONLIVINGAREA_MODE',
-            'APARTMENTS_MEDI', 'BASEMENTAREA_MEDI', 'YEARS_BEGINEXPLUATATION_MEDI', 'YEARS_BUILD_MEDI',
-            'COMMONAREA_MEDI', 'ELEVATORS_MEDI', 'ENTRANCES_MEDI', 'FLOORSMAX_MEDI', 'FLOORSMIN_MEDI',
-            'LANDAREA_MEDI', 'LIVINGAPARTMENTS_MEDI', 'LIVINGAREA_MEDI', 'NONLIVINGAPARTMENTS_MEDI',
-            'NONLIVINGAREA_MEDI', 'FONDKAPREMONT_MODE_not specified', 'FONDKAPREMONT_MODE_org spec account',
-            'FONDKAPREMONT_MODE_reg oper account', 'FONDKAPREMONT_MODE_reg oper spec account',
-            'HOUSETYPE_MODE_block of flats', 'HOUSETYPE_MODE_specific housing', 'HOUSETYPE_MODE_terraced house',
-            'TOTALAREA_MODE', 'WALLSMATERIAL_MODE_Block', 'WALLSMATERIAL_MODE_Mixed',
-            'WALLSMATERIAL_MODE_Monolithic', 'WALLSMATERIAL_MODE_Others', 'WALLSMATERIAL_MODE_Panel',
-            'WALLSMATERIAL_MODE_Stone, brick', 'WALLSMATERIAL_MODE_Wooden', 'EMERGENCYSTATE_MODE_No',
-            'EMERGENCYSTATE_MODE_Yes', 'OBS_30_CNT_SOCIAL_CIRCLE', 'DEF_30_CNT_SOCIAL_CIRCLE',
-            'OBS_60_CNT_SOCIAL_CIRCLE', 'DEF_60_CNT_SOCIAL_CIRCLE', 'DAYS_LAST_PHONE_CHANGE',
-            'FLAG_DOCUMENT_2', 'FLAG_DOCUMENT_3', 'FLAG_DOCUMENT_4', 'FLAG_DOCUMENT_5',
-            'FLAG_DOCUMENT_6', 'FLAG_DOCUMENT_7', 'FLAG_DOCUMENT_8', 'FLAG_DOCUMENT_9',
-            'FLAG_DOCUMENT_10', 'FLAG_DOCUMENT_11', 'FLAG_DOCUMENT_12', 'FLAG_DOCUMENT_13',
-            'FLAG_DOCUMENT_14', 'FLAG_DOCUMENT_15', 'FLAG_DOCUMENT_16', 'FLAG_DOCUMENT_17',
-            'FLAG_DOCUMENT_18', 'FLAG_DOCUMENT_19', 'FLAG_DOCUMENT_20', 'FLAG_DOCUMENT_21'
-        ]
+        # Create sample_train.csv with actual Home Credit structure
+        sample_data = {
+            'SK_ID_CURR': [100002, 100003, 100004, 100006, 100007],
+            'NAME_CONTRACT_TYPE': ['Cash loans', 'Cash loans', 'Revolving loans', 'Cash loans', 'Cash loans'],
+            'CODE_GENDER': ['M', 'F', 'M', 'F', 'M'],
+            'FLAG_OWN_CAR': ['N', 'N', 'Y', 'N', 'N'],
+            'FLAG_OWN_REALTY': ['Y', 'N', 'Y', 'Y', 'Y'],
+            'CNT_CHILDREN': [0, 0, 0, 0, 0],
+            'AMT_INCOME_TOTAL': [202500, 270000, 67500, 135000, 121500],
+            'AMT_CREDIT': [406597.5, 1293502.5, 135000, 312682.5, 513000],
+            'AMT_ANNUITY': [24700.5, 35698.5, 6750, 29686.5, 21865.5],
+            'AMT_GOODS_PRICE': [351000, 1129500, 135000, 297000, 513000],
+            'NAME_TYPE_SUITE': ['Unaccompanied', 'Family', 'Unaccompanied', 'Unaccompanied', 'Unaccompanied'],
+            'NAME_INCOME_TYPE': ['Working', 'State servant', 'Working', 'Working', 'Working'],
+            'NAME_EDUCATION_TYPE': ['Secondary / secondary special', 'Higher education', 'Secondary / secondary special', 'Secondary / secondary special', 'Secondary / secondary special'],
+            'NAME_FAMILY_STATUS': ['Single / not married', 'Married', 'Single / not married', 'Civil marriage', 'Single / not married'],
+            'NAME_HOUSING_TYPE': ['House / apartment', 'House / apartment', 'House / apartment', 'House / apartment', 'House / apartment'],
+            'REGION_POPULATION_RELATIVE': [0.018801, 0.003541, 0.010032, 0.008019, 0.028663],
+            'DAYS_BIRTH': [-9461, -16765, -19046, -19005, -19932],
+            'DAYS_EMPLOYED': [-637, -1188, -225, -3039, -3038],
+            'DAYS_REGISTRATION': [-3648, -1186, -4260, -9833, -4311],
+            'DAYS_ID_PUBLISH': [-2120, -291, -2531, -2437, -3458],
+            'OWN_CAR_AGE': [None, None, 26, None, None],
+            'FLAG_MOBIL': [1, 1, 1, 1, 1],
+            'FLAG_EMP_PHONE': [1, 1, 1, 1, 1],
+            'FLAG_WORK_PHONE': [0, 0, 1, 0, 0],
+            'FLAG_CONT_MOBILE': [1, 1, 1, 1, 1],
+            'FLAG_PHONE': [1, 1, 1, 0, 0],
+            'FLAG_EMAIL': [0, 0, 0, 0, 0],
+            'OCCUPATION_TYPE': ['Laborers', 'Core staff', 'Laborers', 'Laborers', 'Core staff'],
+            'CNT_FAM_MEMBERS': [1, 2, 1, 2, 1],
+            'REGION_RATING_CLIENT': [2, 1, 2, 2, 2],
+            'REGION_RATING_CLIENT_W_CITY': [2, 1, 2, 2, 2],
+            'WEEKDAY_APPR_PROCESS_START': ['WEDNESDAY', 'MONDAY', 'MONDAY', 'WEDNESDAY', 'THURSDAY'],
+            'HOUR_APPR_PROCESS_START': [10, 11, 9, 17, 11],
+            'REG_REGION_NOT_LIVE_REGION': [0, 0, 0, 0, 0],
+            'REG_REGION_NOT_WORK_REGION': [0, 0, 0, 0, 0],
+            'LIVE_REGION_NOT_WORK_REGION': [0, 0, 0, 0, 0],
+            'REG_CITY_NOT_LIVE_CITY': [0, 0, 0, 0, 0],
+            'REG_CITY_NOT_WORK_CITY': [0, 0, 0, 0, 0],
+            'LIVE_CITY_NOT_WORK_CITY': [0, 0, 0, 0, 0],
+            'ORGANIZATION_TYPE': ['Business Entity Type 3', 'School', 'Government', 'Business Entity Type 3', 'Religion'],
+            'EXT_SOURCE_1': [0.083037, 0.311267, None, None, None],
+            'EXT_SOURCE_2': [0.262949, 0.622246, 0.555912, 0.650442, 0.322738],
+            'EXT_SOURCE_3': [0.139376, None, 0.729567, None, None],
+            'TARGET': [1, 0, 0, 0, 0]
+        }
         
-        # Create dummy DataFrame with all expected features
-        dummy_data = {col: [0] for col in feature_names}
-        return pd.DataFrame(dummy_data)
+        df = pd.DataFrame(sample_data)
+        df.to_csv("sample_train.csv", index=False)
+        
+        # Apply one-hot encoding like in training
+        X = df.drop("TARGET", axis=1)
+        X_encoded = pd.get_dummies(X, drop_first=True)
+        return X_encoded
 
 X = load_sample()
 
@@ -192,41 +160,89 @@ if mode == "Single Applicant":
     col1, col2 = st.columns(2)
     
     with col1:
-        income = st.number_input("Annual Income", value=30000, min_value=0)
-        age = st.number_input("Age", value=28, min_value=18, max_value=100)
+        amt_income = st.number_input("Annual Income (AMT_INCOME_TOTAL)", value=202500, min_value=0)
+        amt_credit = st.number_input("Credit Amount (AMT_CREDIT)", value=406597, min_value=0)
+        amt_annuity = st.number_input("Loan Annuity (AMT_ANNUITY)", value=24700, min_value=0)
+        amt_goods_price = st.number_input("Goods Price (AMT_GOODS_PRICE)", value=351000, min_value=0)
     
     with col2:
-        loan_amount = st.number_input("Loan Amount", value=5000, min_value=0)
-        credit_score = st.number_input("Credit Score", value=650, min_value=300, max_value=850)
+        code_gender = st.selectbox("Gender", ["M", "F"])
+        name_contract_type = st.selectbox("Contract Type", ["Cash loans", "Revolving loans"])
+        flag_own_car = st.selectbox("Owns Car", ["Y", "N"])
+        flag_own_realty = st.selectbox("Owns Realty", ["Y", "N"])
+    
+    col3, col4 = st.columns(2)
+    
+    with col3:
+        cnt_children = st.number_input("Number of Children", value=0, min_value=0, max_value=20)
+        days_birth = st.number_input("Age (years)", value=26, min_value=18, max_value=100)
+        days_employed = st.number_input("Years Employed", value=2, min_value=0, max_value=50)
+    
+    with col4:
+        name_income_type = st.selectbox("Income Type", ["Working", "State servant", "Commercial associate", "Pensioner"])
+        name_education_type = st.selectbox("Education", ["Secondary / secondary special", "Higher education", "Incomplete higher", "Lower secondary", "Academic degree"])
+        name_family_status = st.selectbox("Family Status", ["Single / not married", "Married", "Civil marriage", "Separated", "Widow"])
     
     predict_button = st.button("🔮 Predict Default Risk", type="primary")
     
     if predict_button:
         input_data = {
-            'income': income,
-            'age': age,
-            'loan_amount': loan_amount,
-            'credit_score': credit_score
+            'SK_ID_CURR': 999999,  # Dummy ID
+            'NAME_CONTRACT_TYPE': name_contract_type,
+            'CODE_GENDER': code_gender,
+            'FLAG_OWN_CAR': flag_own_car,
+            'FLAG_OWN_REALTY': flag_own_realty,
+            'CNT_CHILDREN': cnt_children,
+            'AMT_INCOME_TOTAL': amt_income,
+            'AMT_CREDIT': amt_credit,
+            'AMT_ANNUITY': amt_annuity,
+            'AMT_GOODS_PRICE': amt_goods_price,
+            'NAME_TYPE_SUITE': 'Unaccompanied',
+            'NAME_INCOME_TYPE': name_income_type,
+            'NAME_EDUCATION_TYPE': name_education_type,
+            'NAME_FAMILY_STATUS': name_family_status,
+            'NAME_HOUSING_TYPE': 'House / apartment',
+            'REGION_POPULATION_RELATIVE': 0.018801,
+            'DAYS_BIRTH': -days_birth * 365,  # Convert to negative days
+            'DAYS_EMPLOYED': -days_employed * 365,  # Convert to negative days
+            'DAYS_REGISTRATION': -3648,
+            'DAYS_ID_PUBLISH': -2120,
+            'OWN_CAR_AGE': None,
+            'FLAG_MOBIL': 1,
+            'FLAG_EMP_PHONE': 1,
+            'FLAG_WORK_PHONE': 0,
+            'FLAG_CONT_MOBILE': 1,
+            'FLAG_PHONE': 1,
+            'FLAG_EMAIL': 0,
+            'OCCUPATION_TYPE': 'Laborers',
+            'CNT_FAM_MEMBERS': 1,
+            'REGION_RATING_CLIENT': 2,
+            'REGION_RATING_CLIENT_W_CITY': 2,
+            'WEEKDAY_APPR_PROCESS_START': 'WEDNESDAY',
+            'HOUR_APPR_PROCESS_START': 10,
+            'REG_REGION_NOT_LIVE_REGION': 0,
+            'REG_REGION_NOT_WORK_REGION': 0,
+            'LIVE_REGION_NOT_WORK_REGION': 0,
+            'REG_CITY_NOT_LIVE_CITY': 0,
+            'REG_CITY_NOT_WORK_CITY': 0,
+            'LIVE_CITY_NOT_WORK_CITY': 0,
+            'ORGANIZATION_TYPE': 'Business Entity Type 3',
+            'EXT_SOURCE_1': 0.083037,
+            'EXT_SOURCE_2': 0.262949,
+            'EXT_SOURCE_3': 0.139376
         }
         
-        new_app_df = pd.DataFrame([{col: 0 for col in X.columns}])
+        # Create DataFrame and apply one-hot encoding
+        new_app_df = pd.DataFrame([input_data])
+        new_app_encoded = pd.get_dummies(new_app_df, drop_first=True)
         
-        # Map user inputs to expected feature names
-        new_app_df['SK_ID_CURR'] = 1  # Dummy ID
-        new_app_df['AMT_INCOME_TOTAL'] = income
-        new_app_df['AMT_CREDIT'] = loan_amount
-        new_app_df['AMT_ANNUITY'] = loan_amount * 0.1  # Estimate annuity as 10% of loan
-        new_app_df['AMT_GOODS_PRICE'] = loan_amount
-        new_app_df['DAYS_BIRTH'] = -age * 365  # Convert age to negative days
-        new_app_df['CODE_GENDER_M'] = 1  # Default to male
-        new_app_df['NAME_CONTRACT_TYPE_Cash loans'] = 1  # Default to cash loans
-        new_app_df['FLAG_OWN_CAR_N'] = 1  # Default to no car
-        new_app_df['FLAG_OWN_REALTY_Y'] = 1  # Default to owns realty
+        # Align with training features
+        new_app_aligned = new_app_encoded.reindex(columns=X.columns, fill_value=0)
 
         preds = {}
         if "Logistic Regression" in selected_models:
             try:
-                scaled = scaler.transform(new_app_df.values)
+                scaled = scaler.transform(new_app_aligned)
                 preds["Logistic Regression"] = float(log_model.predict_proba(scaled)[:, 1][0])
             except Exception as e:
                 st.error(f"Error with Logistic Regression prediction: {str(e)}")
@@ -234,7 +250,7 @@ if mode == "Single Applicant":
 
         if "CatBoost" in selected_models:
             try:
-                preds["CatBoost"] = float(cat_model.predict_proba(new_app_df.values)[:, 1][0])
+                preds["CatBoost"] = float(cat_model.predict_proba(new_app_aligned)[:, 1][0])
             except Exception as e:
                 st.error(f"Error with CatBoost prediction: {str(e)}")
                 st.info("Feature alignment issue. Check that CatBoost was trained on the same features.")
