@@ -161,60 +161,7 @@ def cm_counts_to_df(cm):
 
 # ---------------------------------------------------
 # ---------------------------------------------------
-@st.cache_data
-def load_training_features():
-    """Load or create the exact 229 training features that models expect"""
-    try:
-        # Try to load from a reference file if available
-        df = pd.read_csv("sample_train.csv")
-        # Handle missing values (numeric columns) - fill with median
-        numeric_cols = df.select_dtypes(include=['number']).columns
-        df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].median())
-        
-        # Apply one-hot encoding exactly like training
-        df_encoded = pd.get_dummies(df, drop_first=True)
-        X = df_encoded.drop('TARGET', axis=1)
-        return X.columns.tolist()
-    except:
-        # If sample_train.csv doesn't exist or has issues, create the expected 229 features manually
-        # This should match exactly what the models were trained on
-        base_features = [
-            'SK_ID_CURR', 'AMT_INCOME_TOTAL', 'AMT_CREDIT', 'AMT_ANNUITY', 'AMT_GOODS_PRICE',
-            'CNT_CHILDREN', 'DAYS_BIRTH', 'DAYS_EMPLOYED', 'DAYS_REGISTRATION', 'DAYS_ID_PUBLISH',
-            'OWN_CAR_AGE', 'FLAG_MOBIL', 'FLAG_EMP_PHONE', 'FLAG_WORK_PHONE', 'FLAG_CONT_MOBILE',
-            'FLAG_PHONE', 'FLAG_EMAIL', 'CNT_FAM_MEMBERS', 'REGION_RATING_CLIENT', 
-            'REGION_RATING_CLIENT_W_CITY', 'HOUR_APPR_PROCESS_START', 'REG_REGION_NOT_LIVE_REGION',
-            'REG_REGION_NOT_WORK_REGION', 'LIVE_REGION_NOT_WORK_REGION', 'REG_CITY_NOT_LIVE_CITY',
-            'REG_CITY_NOT_WORK_CITY', 'LIVE_CITY_NOT_WORK_CITY', 'EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3',
-            'REGION_POPULATION_RELATIVE'
-        ]
-        
-        # Add one-hot encoded categorical features (these would be created by pd.get_dummies with drop_first=True)
-        categorical_features = [
-            'CODE_GENDER_M', 'NAME_CONTRACT_TYPE_Revolving loans',
-            'FLAG_OWN_CAR_Y', 'FLAG_OWN_REALTY_Y',
-            'NAME_TYPE_SUITE_Children', 'NAME_TYPE_SUITE_Family', 'NAME_TYPE_SUITE_Group of people',
-            'NAME_TYPE_SUITE_Other_A', 'NAME_TYPE_SUITE_Other_B', 'NAME_TYPE_SUITE_Spouse, partner',
-            'NAME_INCOME_TYPE_Businessman', 'NAME_INCOME_TYPE_Commercial associate',
-            'NAME_INCOME_TYPE_Maternity leave', 'NAME_INCOME_TYPE_Pensioner',
-            'NAME_INCOME_TYPE_State servant', 'NAME_INCOME_TYPE_Student', 'NAME_INCOME_TYPE_Unemployed',
-            'NAME_INCOME_TYPE_Working',
-            'NAME_EDUCATION_TYPE_Higher education', 'NAME_EDUCATION_TYPE_Incomplete higher',
-            'NAME_EDUCATION_TYPE_Lower secondary', 'NAME_EDUCATION_TYPE_Secondary / secondary special',
-            'NAME_FAMILY_STATUS_Civil marriage', 'NAME_FAMILY_STATUS_Married',
-            'NAME_FAMILY_STATUS_Separated', 'NAME_FAMILY_STATUS_Single / not married',
-            'NAME_FAMILY_STATUS_Unknown', 'NAME_FAMILY_STATUS_Widow',
-            'NAME_HOUSING_TYPE_Co-op apartment', 'NAME_HOUSING_TYPE_House / apartment',
-            'NAME_HOUSING_TYPE_Municipal apartment', 'NAME_HOUSING_TYPE_Office apartment',
-            'NAME_HOUSING_TYPE_Rented apartment', 'NAME_HOUSING_TYPE_With parents'
-        ]
-        
-        # Add more categorical features to reach 229 total
-        additional_features = [f'FEATURE_{i}' for i in range(len(base_features + categorical_features), 229)]
-        
-        return base_features + categorical_features + additional_features
-
-training_feature_names = load_training_features()
+training_feature_names = X.columns.tolist()
 
 # ---------------------------------------------------
 # Single Applicant Prediction
@@ -253,7 +200,7 @@ if mode == "Single Applicant":
     predict_button = st.button("🔮 Predict Default Risk", type="primary")
     
     if predict_button:
-        new_app_aligned = pd.DataFrame(0, index=[0], columns=training_feature_names)
+        new_app_aligned = pd.DataFrame(0, index=[0], columns=X.columns)
         
         # Map user inputs to actual training feature names
         feature_mapping = {
@@ -306,7 +253,7 @@ if mode == "Single Applicant":
                 new_app_aligned[feature] = value
 
         st.write(f"Debug: DataFrame shape: {new_app_aligned.shape}")
-        st.write(f"Debug: Expected features: {len(training_feature_names)}")
+        st.write(f"Debug: Expected features: {len(X.columns)}")
         
         preds = {}
         if "Logistic Regression" in selected_models:
