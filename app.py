@@ -590,5 +590,3 @@ if st.button("🔮 Predict Default Risk", type="primary"):
         st.error("❌ No predictions could be generated. Please check the model files or feature alignment.")
 
 st.markdown("---")
-st.markdown("**Note:** This app uses models trained on Home Credit dataset with business cost optimization.")
-
