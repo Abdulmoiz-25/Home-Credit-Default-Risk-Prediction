@@ -65,6 +65,8 @@ def load_training_dataset():
 # Load models
 st.set_page_config(page_title="Loan Default Risk Prediction", layout="wide")
 
+st.set_page_config(page_title="Loan Default Risk Prediction", layout="wide")
+
 @st.cache_data
 def load_training_dataset():
     """Load the actual training dataset from uploaded zip file"""
