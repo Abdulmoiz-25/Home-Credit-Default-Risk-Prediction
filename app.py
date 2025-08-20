@@ -219,51 +219,67 @@ def create_sample_data():
 
 training_features = load_training_dataset()
 
+# --- App Header ---
 st.title("🏦 Loan Default Risk Prediction")
-st.markdown("Predict loan default risk using Logistic Regression and CatBoost models trained on Home Credit data.")
+st.markdown(
+    "Easily predict the likelihood of loan default using "
+    "**Logistic Regression** and **CatBoost** models trained on Home Credit data."
+)
 
-st.info(f"📊 Using training dataset with {training_features.shape[1]} features for feature alignment")
+st.info(f"📊 Using training dataset with **{training_features.shape[1]} features** for feature alignment.")
 
-# Sidebar
-st.sidebar.header("Prediction Settings")
-model_choice = st.sidebar.selectbox("Select Model", ["Logistic Regression", "CatBoost", "Both"])
+# --- Sidebar Settings ---
+with st.sidebar:
+    st.header("⚙️ Prediction Settings")
+    model_choice = st.selectbox("Select Model", ["Logistic Regression", "CatBoost", "Both"])
 
-# Main interface
-st.header("Enter Applicant Details")
+# --- Applicant Section ---
+st.header("📝 Applicant Information")
+st.markdown("Fill in the applicant’s details below:")
 
 if log_model is None or scaler is None or cat_model is None:
-    st.error("Models could not be loaded. Please check model files.")
+    st.error("❌ Models could not be loaded. Please check model files.")
     st.stop()
 
-col1, col2 = st.columns(2)
+# --- Input Layout ---
+with st.container():
+    col1, col2 = st.columns(2)
 
-with col1:
-    st.subheader("Financial Information")
-    amt_income_total = st.number_input("Annual Income", value=202500.0, min_value=0.0)
-    amt_credit = st.number_input("Credit Amount", value=406597.5, min_value=0.0)
-    amt_annuity = st.number_input("Loan Annuity", value=24700.5, min_value=0.0)
-    amt_goods_price = st.number_input("Goods Price", value=351000.0, min_value=0.0)
-    
-    st.subheader("Personal Information")
-    cnt_children = st.number_input("Number of Children", value=0, min_value=0, max_value=20)
-    days_birth = st.number_input("Age (years)", value=26, min_value=18, max_value=100)
-    days_employed = st.number_input("Years Employed", value=2, min_value=0, max_value=50)
+    with col1:
+        st.markdown("### 💰 Financial Information")
+        amt_income_total = st.number_input("Annual Income ($)", value=202500.0, min_value=0.0)
+        amt_credit = st.number_input("Credit Amount ($)", value=406597.5, min_value=0.0)
+        amt_annuity = st.number_input("Loan Annuity ($)", value=24700.5, min_value=0.0)
+        amt_goods_price = st.number_input("Goods Price ($)", value=351000.0, min_value=0.0)
 
-with col2:
-    st.subheader("Categorical Information")
-    code_gender = st.selectbox("Gender", ["M", "F"])
-    name_contract_type = st.selectbox("Contract Type", ["Cash loans", "Revolving loans"])
-    flag_own_car = st.selectbox("Owns Car", ["N", "Y"])
-    flag_own_realty = st.selectbox("Owns Realty", ["Y", "N"])
-    name_income_type = st.selectbox("Income Type", ["Working", "State servant", "Commercial associate", "Pensioner"])
-    name_education_type = st.selectbox("Education Level", 
-                                     ["Secondary / secondary special", "Higher education", 
-                                      "Incomplete higher", "Lower secondary", "Academic degree"])
-    name_family_status = st.selectbox("Family Status", 
-                                    ["Single / not married", "Married", "Civil marriage", 
-                                     "Separated", "Widow"])
+        st.markdown("### 👤 Personal Information")
+        cnt_children = st.number_input("Number of Children", value=0, min_value=0, max_value=20)
+        days_birth = st.number_input("Age (years)", value=26, min_value=18, max_value=100)
+        days_employed = st.number_input("Years Employed", value=2, min_value=0, max_value=50)
 
-if st.button("🔮 Predict Default Risk", type="primary"):
+    with col2:
+        st.markdown("### 📊 Categorical Information")
+        code_gender = st.selectbox("Gender", ["M", "F"])
+        name_contract_type = st.selectbox("Contract Type", ["Cash loans", "Revolving loans"])
+        flag_own_car = st.selectbox("Owns Car", ["N", "Y"])
+        flag_own_realty = st.selectbox("Owns Realty", ["Y", "N"])
+        name_income_type = st.selectbox(
+            "Income Type",
+            ["Working", "State servant", "Commercial associate", "Pensioner"]
+        )
+        name_education_type = st.selectbox(
+            "Education Level",
+            ["Secondary / secondary special", "Higher education",
+             "Incomplete higher", "Lower secondary", "Academic degree"]
+        )
+        name_family_status = st.selectbox(
+            "Family Status",
+            ["Single / not married", "Married", "Civil marriage", "Separated", "Widow"]
+        )
+
+# --- Predict Button ---
+st.markdown("### 🔮 Run Prediction")
+if st.button("Predict Default Risk", type="primary"):
     new_applicant = {
         'SK_ID_CURR': 999999,  # Dummy ID
         'NAME_CONTRACT_TYPE': name_contract_type,
@@ -436,9 +452,7 @@ if st.button("🔮 Predict Default Risk", type="primary"):
     
     X_new_aligned = X_new_aligned.fillna(0)
     
-    st.write(f"Debug: Input shape: {X_new_aligned.shape}")
-    st.write(f"Debug: Training features shape: {training_features.shape}")
-    st.write(f"Debug: Contains NaN: {X_new_aligned.isnull().any().any()}")
+    # Debug logs removed for cleaner interface
     
     # Make predictions
     results = {}
@@ -492,5 +506,6 @@ if st.button("🔮 Predict Default Risk", type="primary"):
 
 st.markdown("---")
 st.markdown("**Note:** This app uses models trained on Home Credit dataset with business cost optimization.")
+
 
 
