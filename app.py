@@ -374,10 +374,45 @@ if st.button("🔮 Predict Default Risk", type="primary"):
     # Convert to DataFrame
     new_df = pd.DataFrame([new_applicant])
     
+    try:
+        # Get the raw training data before encoding to calculate proper medians
+        zip_files = [f for f in os.listdir('.') if f.endswith('.zip')]
+        if zip_files:
+            with zipfile.ZipFile(zip_files[0], 'r') as zip_ref:
+                zip_ref.extractall('.')
+            csv_files = [f for f in os.listdir('.') if f.endswith('.csv') and 'train' in f.lower()]
+            if csv_files:
+                train_df = pd.read_csv(csv_files[0])
+                # Calculate medians from training data
+                train_numeric_cols = train_df.select_dtypes(include=['number']).columns
+                training_medians = train_df[train_numeric_cols].median()
+            else:
+                # Fallback to sample data medians
+                sample_df = pd.DataFrame(create_sample_data().iloc[:5])  # Use first 5 rows
+                training_medians = sample_df.select_dtypes(include=['number']).median()
+        else:
+            # Fallback to sample data medians
+            sample_df = pd.DataFrame(create_sample_data().iloc[:5])  # Use first 5 rows
+            training_medians = sample_df.select_dtypes(include=['number']).median()
+    except:
+        # Final fallback - use hardcoded medians
+        training_medians = pd.Series({
+            'OWN_CAR_AGE': 12.0,
+            'EXT_SOURCE_1': 0.5,
+            'EXT_SOURCE_3': 0.5,
+            'APARTMENTS_AVG': 0.1,
+            'BASEMENTAREA_AVG': 0.1
+        })
+    
     # Apply exact same preprocessing as training
-    # 1. Handle missing values (numeric columns)
+    # 1. Handle missing values using training data medians
     numeric_cols = new_df.select_dtypes(include=['number']).columns
-    new_df[numeric_cols] = new_df[numeric_cols].fillna(new_df[numeric_cols].median())
+    for col in numeric_cols:
+        if col in training_medians.index:
+            new_df[col] = new_df[col].fillna(training_medians[col])
+        else:
+            # If column not in training medians, fill with 0
+            new_df[col] = new_df[col].fillna(0)
     
     # 2. Apply one-hot encoding (exactly like training)
     new_df_encoded = pd.get_dummies(new_df, drop_first=True)
@@ -388,10 +423,14 @@ if st.button("🔮 Predict Default Risk", type="primary"):
     else:
         X_new = new_df_encoded
     
+    # 4. Align with training features
     X_new_aligned = X_new.reindex(columns=training_features.columns, fill_value=0)
+    
+    X_new_aligned = X_new_aligned.fillna(0)
     
     st.write(f"Debug: Input shape: {X_new_aligned.shape}")
     st.write(f"Debug: Training features shape: {training_features.shape}")
+    st.write(f"Debug: Contains NaN: {X_new_aligned.isnull().any().any()}")
     
     # Make predictions
     results = {}
@@ -412,7 +451,7 @@ if st.button("🔮 Predict Default Risk", type="primary"):
             results["CatBoost"] = cb_prob
         except Exception as e:
             st.error(f"CatBoost error: {e}")
-    
+
     # Display results
     if results:
         st.success("✅ Prediction completed!")
